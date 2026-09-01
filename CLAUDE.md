@@ -135,6 +135,21 @@ HouseholdRole OWNER | ADMIN | MEMBER | VIEWER
   Se recalculan en el dominio al guardar; el cliente no los envía nunca.
 - **`Transaction.createdByUserId`** existe para atribución dentro de un household compartido.
 - Índices: todos empiezan por `householdId`. Es el primer filtro de toda consulta.
+- **Nombres: `camelCase` en Prisma, `snake_case` en Postgres.** Cada campo lleva su
+  `@map("...")` y cada modelo su `@@map("...")`. Escribes `tx.baseAmount` en TypeScript y
+  `base_amount` en el SQL crudo de `analytics` y en las políticas RLS. `@@index`/`@@unique`
+  usan el nombre de Prisma, no el de la columna. **Si añades un campo, añade su `@map`** —
+  si no, quedará como la única columna en camelCase y habrá que citarla `"asiComillada"`
+  en todo SQL posterior.
+
+### CHECK constraints en la base
+
+Las invariantes sin excepción legítima se aplican también en Postgres, en la migración
+`20260831000100_check_constraints`: RN-39 (ahorro exige fondo), importes y tasas positivos,
+monedas ISO de 3 letras, rangos de quincena/mes/`dueDay`, coherencia `number ↔ month`.
+Prisma no modela CHECK constraints y por eso **no los incluye en sus diffs**: sobreviven a los
+`migrate dev` siguientes. Las reglas con casos borde (RN-26 y el importador de la Fase 12) se
+validan en el dominio, donde pueden devolver un error explicativo en vez de un 500.
 
 ---
 

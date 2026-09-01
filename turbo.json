@@ -1,7 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env", ".env.local"],
-  "globalEnv": ["NODE_ENV"],
+  "globalDependencies": [
+    ".env",
+    ".env.local"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DIRECT_URL"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
@@ -9,26 +16,42 @@
       "persistent": true
     },
     "build": {
-      "outputs": ["dist/**", ".next/**", "build/**"],
-      "dependsOn": ["^build"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "build/**"
+      ],
+      "dependsOn": [
+        "^build"
+      ]
     },
     "lint": {
-      "outputs": ["node_modules/.cache/.eslintcache"]
+      "outputs": [
+        "node_modules/.cache/.eslintcache"
+      ]
     },
     "typecheck": {
       "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": [
+        "coverage/**"
+      ]
     },
     "test:domain": {
-      "outputs": ["coverage/**"]
+      "outputs": [
+        "coverage/**"
+      ]
     },
     "test:integration": {
-      "outputs": ["coverage/**"]
+      "outputs": [
+        "coverage/**"
+      ]
     },
     "test:e2e": {
-      "outputs": ["test-results/**"]
+      "outputs": [
+        "test-results/**"
+      ]
     },
     "db:migrate": {
       "cache": false
@@ -40,6 +63,14 @@
       "cache": false,
       "interactive": true,
       "persistent": true
+    },
+    "test:tenant": {
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "db:deploy": {
+      "cache": false
     }
   }
 }
