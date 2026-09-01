@@ -344,6 +344,9 @@ proyecto entero en cada capa.
 | Fijo mensual con `dueDay=31` explota en febrero | Falta el `min(dueDay, díaFinQuincena)` de RN-21 |
 | `0.30000000000000004` en un total | Alguien usó `number` en vez de `Decimal` |
 | "Too many connections" en Postgres | Falta `pgbouncer=true&connection_limit=1`, o `PrismaService` no es singleton global |
+| `P1001 Can't reach database server` | Estás usando la conexión directa `db.<ref>.supabase.co`: solo tiene registro AAAA (IPv6) y el plan free no da IPv4. Usa el pooler `aws-0-us-east-2.pooler.supabase.com`, con usuario `postgres.<project-ref>` |
+| `P2022 column does not exist` | Cambiaste un `@map`/`@@map` y no corriste `prisma generate`: el cliente cacheado apunta a los nombres viejos |
+| Una contraseña con `+`, `#` o `@` rompe la conexión | Hay que codificarla en la URL (`%2B`, `%23`, `%40`); un `#` sin codificar trunca la cadena entera |
 | Timeout de 10 s en un reporte | Se están trayendo filas a memoria para sumarlas en JS. Agrega en SQL |
 | Usuario nuevo inundado de alertas de "olvidaste pagar" | No se está respetando `controlStartDate` (RN-35) |
 | La app cayó de un día para otro sin cambios | Supabase free se pausó por 7 días de inactividad → cron diario |
