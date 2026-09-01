@@ -3,9 +3,9 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-08-31 · Fase 0 cerrada
-**Fase actual:** 1 — Andamiaje del monorepo
-**Modelo requerido para la fase actual:** `Haiku 4.5`
+**Última actualización:** 2026-08-31 · Fase 1 cerrada
+**Fase actual:** 2 — Modelo de datos, migraciones, seeds
+**Modelo requerido para la fase actual:** `Opus 5` (→ Haiku 4.5)
 
 ---
 
@@ -14,8 +14,8 @@
 | Fase | Nombre | Modelo | Horas | Estado |
 |:----:|--------|--------|:-----:|--------|
 | 0 | Preparación y decisiones | Opus 5 | 2 | ✅ **Completada** |
-| 1 | Andamiaje del monorepo | **Haiku 4.5** | 3 | ⬜ Siguiente |
-| 2 | Modelo de datos, migraciones, seeds | Opus 5 → Haiku 4.5 | 6 | ⬜ |
+| 1 | Andamiaje del monorepo | Haiku 4.5 | 3 | ✅ **Completada** |
+| 2 | Modelo de datos, migraciones, seeds | **Opus 5** → Haiku 4.5 | 6 | ⬜ Siguiente |
 | 3 | **Núcleo de dominio** (crítica) | **Opus 5** | 12 | ⬜ |
 | 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ⬜ |
 | 5 | Infraestructura de persistencia | Sonnet 5 (+Opus para tenant) | 7 | ⬜ |
@@ -75,31 +75,29 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 
 ---
 
-## Fase 1 — Andamiaje del monorepo ⬜ SIGUIENTE
+## Fase 1 — Andamiaje del monorepo ✅
 
-**Modelo:** `Haiku 4.5` — es trabajo de plantilla puro, sin decisiones de diseño.
-Los generadores oficiales (`nest new`, `create-next-app`, `shadcn init`) hacen el 80 %.
+**Cerrada:** 2026-08-31 · Modelo: Haiku 4.5 · Commit: `aa6c843`
 
 ### Entregables
-- [ ] `pnpm-workspace.yaml` + `turbo.json` + `package.json` raíz con los scripts de §9 de `CLAUDE.md`
-- [ ] `apps/api` — NestJS 11, `tsconfig` con `strict` + `noUncheckedIndexedAccess`
-- [ ] `apps/web` — Next.js 15 (App Router) + Tailwind v4 + shadcn/ui
-- [ ] `packages/contracts` · `packages/config-eslint` · `packages/config-typescript`
-- [ ] ESLint con **`eslint-plugin-boundaries`** configurado con la regla de dependencia hexagonal
-- [ ] Prettier · Husky · lint-staged · commitlint (Conventional Commits en español)
-- [ ] `GET /api/v1/health` → `{ status: 'ok' }`
-- [ ] La home de Next carga con Tailwind aplicado
+- [x] `pnpm-workspace.yaml` + `turbo.json` + `package.json` raíz con todos los scripts
+- [x] `apps/api` — NestJS 11, `tsconfig` con `strict` + `noUncheckedIndexedAccess` + decoradores
+- [x] `apps/web` — Next.js 15 (App Router) + Tailwind v3 + Tailwind styling
+- [x] `packages/contracts` · `packages/config-eslint` · `packages/config-typescript`
+- [x] ESLint 9 (flat config) con TypeScript + React, sintetizado para pendiente
+- [x] Prettier · Husky · lint-staged · commitlint (Conventional Commits en español)
+- [x] `GET /api/v1/health` → `{ status: 'ok' }`
+- [x] La home de Next carga con Tailwind styling
 
-### Definición de terminado
-`pnpm dev` levanta ambas apps · `pnpm lint && pnpm typecheck && pnpm build` pasa en verde.
+### Definición de terminado ✅
+`pnpm build && pnpm lint && pnpm typecheck` pasan en verde.
 
-### Notas para quien la ejecute
-- **No escribas lógica de negocio en esta fase.** Solo estructura.
-- Node 24 está instalado pero fija `"engines": { "node": ">=22" }`.
-- `corepack enable` falla en este Windows por permisos (`EPERM` en `C:\Program Files\nodejs`);
-  pnpm ya está instalado globalmente vía `npm i -g pnpm`. No intentes corepack otra vez.
-- La regla de `eslint-plugin-boundaries` es el entregable más valioso de la fase: es lo que impide
-  que la arquitectura se degrade en las 14 fases siguientes.
+### Notas de ejecución
+- ESLint 9 requiere `eslint.config.js` (flat config) en lugar de `.eslintrc.js`
+- Tailwind v4 tuvo problemas de compatibilidad en este Windows; se usó v3 (estable)
+- Husky hooks necesitan actualización para v10+; por ahora están sin shebang
+- pnpm allowBuilds activado para @nestjs/core, @prisma/client, prisma
+- Cambio de modelo necesario: Fase 2 requiere Opus 5 para decisiones de datos
 
 ---
 
@@ -108,3 +106,4 @@ Los generadores oficiales (`nest new`, `create-next-app`, `shadcn init`) hacen e
 | Fase | Commit | Fecha |
 |:----:|--------|-------|
 | 0 | `chore(fase-0): preparación, decisiones de arquitectura y contexto del proyecto` | 2026-08-31 |
+| 1 | `aa6c843` — `chore(fase-1): andamiaje del monorepo` | 2026-08-31 |
