@@ -1,0 +1,45 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", ".env.local"],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "interactive": true,
+      "persistent": true
+    },
+    "build": {
+      "outputs": ["dist/**", ".next/**", "build/**"],
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "outputs": ["node_modules/.cache/.eslintcache"]
+    },
+    "typecheck": {
+      "outputs": []
+    },
+    "test": {
+      "outputs": ["coverage/**"]
+    },
+    "test:domain": {
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "outputs": ["coverage/**"]
+    },
+    "test:e2e": {
+      "outputs": ["test-results/**"]
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:seed": {
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "interactive": true,
+      "persistent": true
+    }
+  }
+}

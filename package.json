@@ -1,0 +1,42 @@
+{
+  "name": "sicfi",
+  "version": "0.0.1",
+  "description": "Sistema de Control Financiero Individual",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --no-cache --parallel",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint -- --fix",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:domain": "turbo test:domain",
+    "test:integration": "turbo test:integration",
+    "test:e2e": "turbo test:e2e",
+    "test:tenant": "turbo test:tenant",
+    "db:migrate": "turbo db:migrate",
+    "db:deploy": "turbo db:deploy",
+    "db:seed": "turbo db:seed",
+    "db:studio": "turbo db:studio",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.20.0",
+    "eslint-plugin-boundaries": "^1.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.4.2",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "turbo": "^2.4.0"
+  }
+}

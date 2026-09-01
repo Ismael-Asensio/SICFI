@@ -1,0 +1,6 @@
+{
+  "name": "@sicfi/config-typescript",
+  "version": "0.0.1",
+  "description": "Shared TypeScript config",
+  "private": true
+}
