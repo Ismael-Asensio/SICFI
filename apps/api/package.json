@@ -22,7 +22,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:rls": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/scripts/apply-sql.ts prisma/sql/rls-policies.sql",
+    "db:verify": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/scripts/verify-schema.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

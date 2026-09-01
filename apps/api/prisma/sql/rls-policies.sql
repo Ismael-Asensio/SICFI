@@ -3,19 +3,33 @@
 --
 --  ⚠️  ADVERTENCIA IMPORTANTE, LEER ANTES DE CONFIAR EN ESTE ARCHIVO
 --
---  RLS **NO se aplica** cuando la conexión usa un rol superusuario o BYPASSRLS.
---  Prisma se conecta con el rol `postgres` de Supabase, que es superusuario:
---  por tanto estas políticas NO protegen las consultas de Prisma.
+--  Estas políticas NO protegen las consultas de Prisma. Verificado empíricamente
+--  contra sicfi-dev el 2026-08-31:
+--
+--    current_user = postgres
+--    pg_roles: postgres  → rolsuper = false, rolbypassrls = TRUE
+--              authenticated → rolbypassrls = false
+--    pg_tables: todas las tablas de public son propiedad de postgres
+--
+--  `rolbypassrls = true` hace que el rol se salte TODA seguridad de fila,
+--  incluido `FORCE ROW LEVEL SECURITY`. Como Prisma se conecta con ese rol,
+--  ninguna política de este archivo afecta a la aplicación.
 --
 --  La barrera real del aislamiento entre households es la CAPA 2:
---  `shared/infrastructure/prisma/tenant.extension.ts`, que inyecta `household_id`
---  en toda operación. Estas políticas son defensa en profundidad y protegen el
---  acceso por el cliente de Supabase, PostgREST y SQL manual — que es
---  exactamente donde ocurren las fugas por descuido.
+--  `shared/infrastructure/prisma/tenant.extension.ts` (Fase 5), que inyecta
+--  `household_id` en toda operación. Estas políticas son defensa en profundidad
+--  y protegen el acceso por el cliente de Supabase, PostgREST y SQL manual —
+--  que es exactamente donde ocurren las fugas por descuido.
 --
 --  Nunca desactives la capa 2 "temporalmente para depurar".
 --
---  Aplicar con:  psql "$DIRECT_URL" -f prisma/sql/rls-policies.sql
+--  Se conserva `FORCE` a propósito: si algún día se le revoca BYPASSRLS al rol
+--  `postgres`, la propiedad de la tabla por sí sola no debe bastar para saltarse
+--  las políticas. Hoy es un no-op.
+--
+--  Aplicar con:
+--    pnpm exec ts-node --compiler-options '{"module":"CommonJS"}' \
+--      prisma/scripts/apply-sql.ts prisma/sql/rls-policies.sql
 --  Es idempotente: se puede correr tras cada migración.
 -- ═══════════════════════════════════════════════════════════════════════════
 
