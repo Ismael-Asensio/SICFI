@@ -3,9 +3,9 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-09-01 · Fase 3 cerrada
-**Fase actual:** 4 — Capa de aplicación (casos de uso)
-**Modelo requerido para la fase actual:** `Sonnet 5`
+**Última actualización:** 2026-09-01 · Fase 4 cerrada
+**Fase actual:** 5 — Infraestructura de persistencia
+**Modelo requerido para la fase actual:** `Sonnet 5` (+ `Opus 5` para el tenant)
 
 ---
 
@@ -17,8 +17,8 @@
 | 1 | Andamiaje del monorepo | Haiku 4.5 | 3 | ✅ **Completada** |
 | 2 | Modelo de datos, migraciones, seeds | Opus 5 | 6 | ✅ **Completada** |
 | 3 | **Núcleo de dominio** (crítica) | Opus 5 | 12 | ✅ **Completada** |
-| 4 | Capa de aplicación (casos de uso) | **Sonnet 5** | 7 | ⬜ Siguiente |
-| 5 | Infraestructura de persistencia | Sonnet 5 (+Opus para tenant) | 7 | ⬜ |
+| 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ✅ **Completada** |
+| 5 | Infraestructura de persistencia | Sonnet 5 (+**Opus** para tenant) | 7 | ⬜ Siguiente |
 | 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ |
 | 7 | API HTTP | Sonnet 5 (+Haiku para DTOs) | 7 | ⬜ |
 | 8 | **Analítica y read models** (crítica) | **Opus 5** | 10 | ⬜ |
@@ -29,7 +29,7 @@
 | 13 | CI/CD y despliegue | Sonnet 5 | 3 | ⬜ |
 | 14 | Hardening y observabilidad | Opus 5 | 4 | ⬜ |
 | 15 | Documentación y cierre | Haiku 4.5 | 2 | ⬜ |
-| | **Total** | | **104 h** | 22 % |
+| | **Total** | | **104 h** | 32 % |
 
 > El total subió de 85 h a 104 h por las decisiones D2 (households), D3 (fondos de ahorro)
 > y D4 (multimoneda), tomadas en la Fase 0.
@@ -240,6 +240,55 @@ seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependen
 
 ---
 
+## Fase 4 — Capa de aplicación (casos de uso) ✅
+
+**Cerrada:** 2026-09-01 · Modelo: Sonnet 5 · Commit: `fcbba35`
+
+### Entregables
+- [x] Puertos de repositorio de los 5 contextos de escritura (iam, catalog, budget, recurring, ledger)
+- [x] CRUD de `catalog` (Category, PaymentMethod, SavingsFund) · `budget` (BudgetSettings, Period)
+      · `recurring` (RecurringExpense) · `ledger` (Transaction)
+- [x] `BootstrapUserUseCase` — perfil, household, OWNER, settings, 24 quincenas, catálogo por
+      defecto. Idempotente. **No** crea fijos: eso lo declara el usuario.
+- [x] Todos los casos de uso probados con dobles en memoria (`test/doubles/`), sin BD
+- [x] **317 tests · cobertura del dominio 98,8 % líneas / 96,6 % ramas**
+- [x] Cero imports de `@prisma/client` o `@nestjs/*` en `domain/` **ni en `application/`**
+
+### Definición de terminado ✅
+Todos los casos de uso probados con dobles; ninguno importa Prisma.
+
+### Decisiones tomadas en esta fase
+| Decisión | Motivo |
+|----------|--------|
+| **`SavingsFund` movido de `ledger` a `catalog`** | CLAUDE.md §4 asigna "fondos de ahorro" a `catalog`; en la Fase 3 quedó mal ubicado en `ledger`. Corregido antes de construir CRUD encima, cuando mover 2 archivos costaba poco. |
+| **`IdGenerator`, puerto nuevo** | Un caso de uso construye la entidad completa (con id) antes de llamar a `repository.save()`; depender de `cuid()` habría acoplado la aplicación a una librería de infraestructura. Adaptador real sobre `crypto.randomUUID()` — el formato del id no importa mientras sea único. |
+| **`ConflictError`, tipo de error nuevo** | Un nombre de categoría repetido no es un `ValidationError` (el dato en sí es válido) ni una `BusinessRuleError` numerada (no hay un RN para esto) — es la unicidad que ya expresa `@@unique` en el esquema. |
+| **`code` de un fijo se genera al crear, nunca lo envía el cliente** | P11: el id no puede depender del orden de creación. Se calcula como `max(código existente) + 1`, no por conteo, para tolerar borrados. |
+| **`RecurringExpenseRepository.delete` vs `save({isActive:false})`** | RN-20: con movimientos asociados, se desactiva; sin ellos, se borra físicamente. La decisión la toma el caso de uso, consultando `TransactionRepository.existsForRecurringExpense`. |
+| **`analytics` no se anticipa** | "Snapshot de quincena" y "conciliación de fijos" usan servicios de dominio ya construidos en la Fase 3, pero su *caso de uso* (wiring con repositorios) se deja para la Fase 8: son proyecciones de lectura, no CRUD. |
+| **`*.repository.ts` excluidos de la cobertura** | Son puertos —interfaz + `Symbol` de inyección—, igual que los `*.port.ts` ya excluidos. El token solo se ejecuta al cablear el DI real (Fase 5/6). |
+
+### 🐛 Caso borde real encontrado y corregido: editar un retiro de ahorro
+Al construir `UpdateTransactionUseCase`, validar RN-41 contra el saldo actual del fondo compara
+el *movimiento que se está editando* contra un saldo que **ya lo incluye una vez**. Sin corrección,
+subir el importe de un `RETIRO_AHORRO` existente —o simplemente cambiarle la fecha— fallaría
+"por saldo insuficiente" contra su propio retiro anterior. Se corrigió devolviendo el importe
+anterior de la transacción al saldo antes de validar el nuevo. Test explícito en
+`transaction-lifecycle.use-cases.spec.ts`.
+
+### Notas para quien siga
+- `test/doubles/` tiene un archivo por contexto (`catalog.doubles.ts`, `budget.doubles.ts`…) con
+  las implementaciones en memoria de cada puerto — reutilízalos en las specs de la Fase 5 hasta
+  que existan los repositorios reales de Prisma.
+- `RegisterTransactionUseCase` y `UpdateTransactionUseCase` son los casos de uso más complejos
+  del sistema: resuelven 5 puertos distintos (household, category, paymentMethod,
+  recurringExpense, savingsFund) antes de validar. Son la plantilla a seguir para cualquier caso
+  de uso que cruce contextos.
+- `tsconfig.json` ya no excluye `*.spec.ts` (lo necesitan `eslint` y `tsc --noEmit` para tipar los
+  tests). El que excluye specs y `test/` es `tsconfig.build.json`, el que usa `nest build`.
+
+---
+
 ## Bitácora de commits por fase
 
 | Fase | Commit | Fecha |
@@ -250,3 +299,4 @@ seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependen
 | 2 | `5a5fc85` — `feat(fase-2): aplicar migraciones, seed y RLS contra Supabase` | 2026-08-31 |
 | 3 | `844748c` — `feat(fase-3): kernel de dominio, Money multimoneda y cálculo de quincena` | 2026-09-01 |
 | 3 | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas` | 2026-09-01 |
+| 4 | `fcbba35` — `feat(fase-4): capa de aplicación — casos de uso CRUD de los 5 contextos` | 2026-09-01 |
