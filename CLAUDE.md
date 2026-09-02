@@ -74,11 +74,35 @@ apps/api/src/contexts/<ctx>/
 
 ```
 domain          →  no importa NADA (ni Prisma, ni Nest, ni Zod)
+                   salvo el shared kernel: shared/domain
 application     →  solo importa domain
 infrastructure  →  importa domain y application
 ```
 
-Verificada en CI por `eslint-plugin-boundaries`. Si necesitas romperla, el diseño está mal.
+**Shared kernel — `apps/api/src/shared/domain/`.** `Money`, `Currency`, `CalendarDate`,
+`Percentage`, `Result`, `DomainError`, `Entity`, y los puertos `Clock` y `ExchangeRateProvider`.
+Lo usan todos los contextos y está sujeto a las mismas restricciones que cualquier `domain/`.
+
+Verificada por `eslint-plugin-boundaries` v5 con dos reglas: `element-types` (capas) y
+`external` (prohíbe Prisma, Nest y Zod dentro de `domain/`). Si necesitas romperla,
+el diseño está mal.
+
+### Reglas de dominio que ya existen — no las reimplementes
+
+| Necesitas | Úsalo, no lo reescribas |
+|-----------|-------------------------|
+| Fechas de negocio | `CalendarDate` — **nunca `Date`** fuera de infraestructura |
+| "Hoy" | puerto `Clock` (`SystemClockAdapter` / `FixedClock` en tests) |
+| Importes | `Money` — nunca `number`, nunca `parseFloat` |
+| Calendario de quincenas | `PeriodFactory.buildYear()` |
+| Métricas de la quincena | `PeriodCalculator.calculate()` |
+| Estado de la quincena | `PeriodStatusResolver.resolve()` |
+| `appliesTo`, costos, fecha límite | `RecurringExpense` |
+| Estado de un fijo / olvidos | `FixedExpenseReconciler` |
+| Validar un movimiento | `TransactionValidator` |
+| Saldo y ahorro efectivo | `SavingsFundBalanceCalculator` |
+| Permisos por rol | `HouseholdPolicy` |
+| Alertas | `AlertEngine` + `ALERT_RULES` |
 
 ### Bounded contexts
 
@@ -351,6 +375,10 @@ proyecto entero en cada capa.
 | Usuario nuevo inundado de alertas de "olvidaste pagar" | No se está respetando `controlStartDate` (RN-35) |
 | La app cayó de un día para otro sin cambios | Supabase free se pausó por 7 días de inactividad → cron diario |
 | `prisma migrate` falla pero la app conecta bien | Migraciones necesitan `DIRECT_URL` (`:5432`), no el pooler |
+| Tras un `pnpm install`, el typecheck falla con `Untyped function calls…` en Prisma | El install borra el cliente generado. Lo arregla el `postinstall: prisma generate`; si no, córrelo a mano |
+| El lint pasa en verde pero la arquitectura se degrada | Comprueba que `eslint-plugin-boundaries` es **v5+** y que está `eslint-import-resolver-typescript`: sin el resolver no sigue los imports sin extensión y aprueba cualquier dependencia |
+| `Parsing error: "parserOptions.project" has been provided` | Un archivo no está cubierto por ningún tsconfig de la lista. Ojo: `tsconfig.build.json` excluye los `*.spec.ts` a propósito |
+| Un fijo BIMESTRAL infla los fijos presupuestados | Falta `occursInMonth`: sin cadencia se cuenta los 12 meses (RN-07) |
 
 ---
 

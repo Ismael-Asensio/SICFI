@@ -3,9 +3,9 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-08-31 · Fase 2 cerrada
-**Fase actual:** 3 — **Núcleo de dominio (LA FASE CRÍTICA)**
-**Modelo requerido para la fase actual:** `Opus 5`
+**Última actualización:** 2026-09-01 · Fase 3 cerrada
+**Fase actual:** 4 — Capa de aplicación (casos de uso)
+**Modelo requerido para la fase actual:** `Sonnet 5`
 
 ---
 
@@ -16,8 +16,8 @@
 | 0 | Preparación y decisiones | Opus 5 | 2 | ✅ **Completada** |
 | 1 | Andamiaje del monorepo | Haiku 4.5 | 3 | ✅ **Completada** |
 | 2 | Modelo de datos, migraciones, seeds | Opus 5 | 6 | ✅ **Completada** |
-| 3 | **Núcleo de dominio** (crítica) | **Opus 5** | 12 | ⬜ Siguiente |
-| 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ⬜ |
+| 3 | **Núcleo de dominio** (crítica) | Opus 5 | 12 | ✅ **Completada** |
+| 4 | Capa de aplicación (casos de uso) | **Sonnet 5** | 7 | ⬜ Siguiente |
 | 5 | Infraestructura de persistencia | Sonnet 5 (+Opus para tenant) | 7 | ⬜ |
 | 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ |
 | 7 | API HTTP | Sonnet 5 (+Haiku para DTOs) | 7 | ⬜ |
@@ -29,7 +29,7 @@
 | 13 | CI/CD y despliegue | Sonnet 5 | 3 | ⬜ |
 | 14 | Hardening y observabilidad | Opus 5 | 4 | ⬜ |
 | 15 | Documentación y cierre | Haiku 4.5 | 2 | ⬜ |
-| | **Total** | | **104 h** | 11 % |
+| | **Total** | | **104 h** | 22 % |
 
 > El total subió de 85 h a 104 h por las decisiones D2 (households), D3 (fondos de ahorro)
 > y D4 (multimoneda), tomadas en la Fase 0.
@@ -179,6 +179,67 @@ acceso vía cliente Supabase / PostgREST / SQL manual.
 
 ---
 
+## Fase 3 — Núcleo de dominio ✅
+
+**Cerrada:** 2026-09-01 · Modelo: Opus 5 · Commits: `844748c`, `38a92a4`
+
+### Entregables
+- [x] Kernel: `Result`, `DomainError`, `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`, puerto `Clock`
+- [x] VOs: `Money`, `Currency`, `ExchangeRate`, `Percentage`, `CalendarDate`, `DueDay`
+- [x] `CurrencyConverter` + puerto `ExchangeRateProvider` (RN-36..RN-38)
+- [x] `PeriodFactory` (RN-01, RN-02) · `PeriodCalculator` (RN-06..RN-12b) · `PeriodStatusResolver` (RN-13..RN-17)
+- [x] `RecurringExpense` (RN-18..RN-21) · `FixedExpenseReconciler` (RN-22..RN-24)
+- [x] `TransactionValidator` Chain of Responsibility (RN-25..RN-29)
+- [x] `SavingsFund` + `SavingsFundBalanceCalculator` (RN-39..RN-41b)
+- [x] `HouseholdPolicy` (RN-43, RN-44)
+- [x] `AlertEngine` + 12 `AlertRule` (RN-33..RN-35)
+- [x] **232 tests · cobertura del dominio 98,6 % líneas / 96,4 % ramas** (DoD pedía ≥ 90 %)
+- [x] Cero dependencias de `@prisma/client` o `@nestjs/*` dentro de `domain/`
+
+### Casos borde del plan, todos con test explícito
+| Caso | Dónde |
+|------|-------|
+| `dueDay = 31` en febrero (28 y 29) | `recurring-expense.entity.spec.ts` |
+| Movimiento del 31-dic y del 1-ene | `ledger.spec.ts` |
+| `disponible = 0` con gastos | `period-calculator.service.spec.ts` |
+| Fijo de baja a mitad de año | `recurring-expense.entity.spec.ts` |
+| `controlStartDate` a mitad de año | `alert-engine.service.spec.ts` |
+| `0,1 + 0,2` sin arrastre de float | `money.vo.spec.ts` |
+| Sumar C$ con US$ → lanza | `money.vo.spec.ts` |
+| US$ sin tasa → usa la anterior; sin ninguna → rechazo | `currency-converter.service.spec.ts` |
+| `RETIRO_AHORRO` > saldo → rechazo | `ledger.spec.ts` |
+| Ahorrar 1 500 y retirar 1 400 = 100 | `ledger.spec.ts`, `alert-engine.service.spec.ts` |
+| Apartar ahorro NO sube el %ejecutado ni dispara A03 | `period-calculator.service.spec.ts` |
+| Último OWNER intentando salir → rechazo | `household-policy.spec.ts` |
+
+### Decisiones tomadas en esta fase
+| Decisión | Motivo |
+|----------|--------|
+| **`CalendarDate`**, no `Date`, para fechas de negocio | Un `Date` es un instante; el 5 de enero no lo es. La única forma de obtener un `CalendarDate` desde un instante **exige** la zona horaria, así que los bugs P4 y "se movió al día anterior" dejan de ser representables. |
+| `Money.plus` **lanza** al mezclar monedas | No es error del usuario sino del programador: nadie pide "suma estos dos importes", lo decide el código. Es una aserción, no control de flujo. `tryPlus` cubre los pocos sitios donde la moneda viene de fuera. |
+| Kernel compartido en `shared/domain` | `Money` y `CalendarDate` los usan todos los contextos. Duplicarlos por contexto sería peor que un shared kernel explícito. |
+| Cascadas como listas de reglas, no escaleras de `if` | En RN-13..RN-17 y RN-22 **el orden ES la regla de negocio**; como dato es inspeccionable y comprobable. |
+| Cadencia mensual en `RecurringExpense` | Sin ella un fijo BIMESTRAL se contaría los 12 meses e inflaría RN-07. El Excel solo tenía mensual y quincenal (P5). |
+
+### ⚠️ Hallazgo: la regla de dependencia NO se estaba aplicando
+`eslint-plugin-boundaries` estaba fijado en **v1.1.1**, una versión que ni siquiera
+expone la regla `element-types`. Desde la Fase 1 el lint pasaba en verde sin
+comprobar nada. Corregido a v5 y **verificado con violaciones reales**: un import
+de Prisma en `domain/` y un `domain → infrastructure` ahora fallan el lint.
+Hizo falta además `eslint-import-resolver-typescript`: sin él, boundaries no sabe
+seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependencia.
+
+### Notas para quien siga
+- `prisma/seed-calendar.ts` **ya no existe**: su lógica está en `PeriodFactory` y
+  `RecurringExpense`, y el seed las importa desde el dominio.
+- `SystemClockAdapter` es el **único** sitio que llama a `new Date()`. En los
+  tests se usa `FixedClock`.
+- `tsconfig.build.json` es el que usa `nest build`; excluye los `*.spec.ts`.
+  `tsconfig.json` los incluye para que eslint y `tsc --noEmit` los cubran.
+- Los `*.port.ts` están excluidos de la cobertura: son interfaces sin ejecución.
+
+---
+
 ## Bitácora de commits por fase
 
 | Fase | Commit | Fecha |
@@ -187,3 +248,5 @@ acceso vía cliente Supabase / PostgREST / SQL manual.
 | 1 | `aa6c843` — `chore(fase-1): andamiaje del monorepo` | 2026-08-31 |
 | 2 | `4ab6a18` — `feat(fase-2): modelo de datos, migraciones y seeds` | 2026-08-31 |
 | 2 | `5a5fc85` — `feat(fase-2): aplicar migraciones, seed y RLS contra Supabase` | 2026-08-31 |
+| 3 | `844748c` — `feat(fase-3): kernel de dominio, Money multimoneda y cálculo de quincena` | 2026-09-01 |
+| 3 | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas` | 2026-09-01 |
