@@ -14,7 +14,7 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --passWithNoTests",
-    "test:domain": "vitest run --dir src/contexts --passWithNoTests",
+    "test:domain": "vitest run --coverage",
     "test:integration": "vitest run --dir test/integration --passWithNoTests",
     "test:e2e": "vitest run --dir test/e2e --passWithNoTests",
     "test:tenant": "vitest run --dir test/tenant --passWithNoTests",
@@ -24,7 +24,8 @@
     "db:studio": "prisma studio",
     "test:watch": "vitest",
     "db:rls": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/scripts/apply-sql.ts prisma/sql/rls-policies.sql",
-    "db:verify": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/scripts/verify-schema.ts"
+    "db:verify": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/scripts/verify-schema.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -51,6 +52,7 @@
     "ts-node": "^10.9.2",
     "@nestjs/testing": "^11.0.0",
     "dotenv": "^16.4.7",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "@vitest/coverage-v8": "^3.2.7"
   }
 }

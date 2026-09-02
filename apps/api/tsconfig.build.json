@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "// nota": "Lo usa `nest build` automáticamente. Los *.spec.ts no se empaquetan.",
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+}

@@ -20,7 +20,10 @@ import {
   PAYMENT_METHODS,
   RECURRING_EXPENSES,
 } from './seed-data';
-import { buildPeriodCalendar, businessDate, deriveAppliesTo } from './seed-calendar';
+import { PeriodFactory } from '../src/contexts/budget/domain/period-factory.service';
+import { DueDay } from '../src/contexts/recurring/domain/due-day.vo';
+import { RecurringExpense } from '../src/contexts/recurring/domain/recurring-expense.entity';
+import { CalendarDate } from '../src/shared/domain/calendar-date.vo';
 
 const prisma = new PrismaClient();
 
@@ -122,7 +125,7 @@ async function main(): Promise<void> {
       name: BUDGET_DEFAULTS.name,
       // RN-35: sin esta fecha, un usuario nuevo recibe decenas de falsos
       // "olvidaste pagar" por todas las quincenas ya pasadas del año.
-      controlStartDate: businessDate(year, 1, 1),
+      controlStartDate: CalendarDate.unsafe(year, 1, 1).toUtcDate(),
       spendThreshold: BUDGET_DEFAULTS.spendThreshold,
       dueSoonDays: BUDGET_DEFAULTS.dueSoonDays,
       inactivityDays: BUDGET_DEFAULTS.inactivityDays,
@@ -133,7 +136,7 @@ async function main(): Promise<void> {
   console.log(`  BudgetSettings    ${year}`);
 
   // ── Quincenas (hoja Quincenas) ──
-  const periods = buildPeriodCalendar(year);
+  const periods = PeriodFactory.buildYear(year);
 
   for (const period of periods) {
     await prisma.period.upsert({
@@ -141,8 +144,8 @@ async function main(): Promise<void> {
       update: {
         month: period.month,
         half: period.half,
-        startDate: period.startDate,
-        endDate: period.endDate,
+        startDate: period.startDate.toUtcDate(),
+        endDate: period.endDate.toUtcDate(),
       },
       create: {
         householdId: household.id,
@@ -150,8 +153,8 @@ async function main(): Promise<void> {
         number: period.number,
         month: period.month,
         half: period.half,
-        startDate: period.startDate,
-        endDate: period.endDate,
+        startDate: period.startDate.toUtcDate(),
+        endDate: period.endDate.toUtcDate(),
         plannedIncome: BUDGET_DEFAULTS.plannedIncomePerPeriod,
         plannedIncomeCurrency: 'NIO',
       },
@@ -174,7 +177,7 @@ async function main(): Promise<void> {
         amount: fixed.amount,
         dueDay: fixed.dueDay,
         frequency: fixed.frequency,
-        appliesTo: deriveAppliesTo(fixed.frequency, fixed.dueDay),
+        appliesTo: RecurringExpense.deriveAppliesTo(fixed.frequency, DueDay.unsafe(fixed.dueDay)),
         categoryId: category.id,
         paymentMethodId: paymentMethod.id,
       },
@@ -186,7 +189,7 @@ async function main(): Promise<void> {
         currency: 'NIO',
         dueDay: fixed.dueDay,
         frequency: fixed.frequency,
-        appliesTo: deriveAppliesTo(fixed.frequency, fixed.dueDay),
+        appliesTo: RecurringExpense.deriveAppliesTo(fixed.frequency, DueDay.unsafe(fixed.dueDay)),
         categoryId: category.id,
         paymentMethodId: paymentMethod.id,
         isActive: true,
