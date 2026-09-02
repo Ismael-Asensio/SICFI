@@ -11,7 +11,9 @@ export default defineConfig({
       // El DoD de la Fase 3 pide >= 90 % de cobertura DEL DOMINIO.
       // Solo se mide dominio: la infraestructura se cubre en las fases 5 y 11.
       include: ['src/contexts/**/domain/**/*.ts', 'src/shared/domain/**/*.ts'],
-      exclude: ['**/*.spec.ts', '**/*.port.ts', '**/index.ts'],
+      // *.repository.ts son puertos igual que *.port.ts (interfaz + token de
+      // inyección): el Symbol solo se ejecuta al cablear el DI real (Fase 5/6).
+      exclude: ['**/*.spec.ts', '**/*.port.ts', '**/*.repository.ts', '**/index.ts'],
       thresholds: {
         statements: 90,
         branches: 90,

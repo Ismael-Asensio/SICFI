@@ -53,3 +53,12 @@ export class BusinessRuleError extends DomainError {
 export class ForbiddenError extends DomainError {
   readonly code = 'FORBIDDEN';
 }
+
+/**
+ * Ya existe algo que ocuparía el mismo lugar: un nombre de categoría repetido,
+ * un `code` de fijo duplicado. No es una regla de negocio numerada (RN-XX),
+ * es la unicidad que ya expresa el esquema con `@@unique`.
+ */
+export class ConflictError extends DomainError {
+  readonly code = 'CONFLICT';
+}

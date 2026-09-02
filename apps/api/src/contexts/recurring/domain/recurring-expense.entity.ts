@@ -77,6 +77,16 @@ export class RecurringExpense extends Entity<string> {
     this.endDate = props.endDate;
   }
 
+  with(changes: Partial<Omit<RecurringExpenseProps, 'id' | 'householdId' | 'code'>>): RecurringExpense {
+    return new RecurringExpense({
+      ...this,
+      ...changes,
+      id: this.id,
+      householdId: this.householdId,
+      code: this.code,
+    });
+  }
+
   // ─────────────────────────── RN-18 ───────────────────────────
 
   /**

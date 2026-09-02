@@ -12,7 +12,7 @@
     "start": "nest start",
     "build": "nest build",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --passWithNoTests",
     "test:domain": "vitest run --coverage",
     "test:integration": "vitest run --dir test/integration --passWithNoTests",

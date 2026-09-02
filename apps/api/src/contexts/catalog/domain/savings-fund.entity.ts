@@ -53,4 +53,8 @@ export class SavingsFund extends Entity<string> {
     if (!this.targetAmount) return null;
     return this.targetAmount.minus(balance).clampToZero();
   }
+
+  with(changes: Partial<Omit<SavingsFundProps, 'id' | 'householdId'>>): SavingsFund {
+    return new SavingsFund({ ...this, ...changes, id: this.id, householdId: this.householdId });
+  }
 }
