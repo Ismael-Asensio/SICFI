@@ -3,9 +3,9 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-09-01 · Fase 4 cerrada
+**Última actualización:** 2026-09-01 · Fase 5 EN CURSO — falta solo el tenant
 **Fase actual:** 5 — Infraestructura de persistencia
-**Modelo requerido para la fase actual:** `Sonnet 5` (+ `Opus 5` para el tenant)
+**Modelo requerido para lo que falta:** `Opus 5` (tenantExtension + TenantContext)
 
 ---
 
@@ -18,7 +18,7 @@
 | 2 | Modelo de datos, migraciones, seeds | Opus 5 | 6 | ✅ **Completada** |
 | 3 | **Núcleo de dominio** (crítica) | Opus 5 | 12 | ✅ **Completada** |
 | 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ✅ **Completada** |
-| 5 | Infraestructura de persistencia | Sonnet 5 (+**Opus** para tenant) | 7 | ⬜ Siguiente |
+| 5 | Infraestructura de persistencia | Sonnet 5 (+**Opus** para tenant) | 7 | 🟡 Repos+UoW listos · falta el tenant |
 | 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ |
 | 7 | API HTTP | Sonnet 5 (+Haiku para DTOs) | 7 | ⬜ |
 | 8 | **Analítica y read models** (crítica) | **Opus 5** | 10 | ⬜ |
@@ -289,6 +289,71 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 
 ---
 
+## Fase 5 — Infraestructura de persistencia 🟡
+
+**En curso** · Modelo: Sonnet 5 · Commit: `3a6606f`
+
+### Hecho (Sonnet)
+- [x] 11 repositorios Prisma + su mapper dedicado, uno por puerto de la Fase 4:
+      iam (User, Household, HouseholdMember, Profile) · catalog (Category, PaymentMethod,
+      SavingsFund) · budget (BudgetSettings, Period) · recurring (RecurringExpense) · ledger (Transaction)
+- [x] `PrismaUnitOfWork` sobre `$transaction`, con un `AsyncLocalStorage` propio
+      (`prisma-transaction-context.ts`) para que cada repositorio se una a la transacción activa
+      sin que nadie se lo pase a mano
+- [x] `PrismaExchangeRateAdapter` — RN-37 completo contra datos reales
+- [x] `BootstrapUserUseCase` ahora corre dentro de `unitOfWork.run()`
+- [x] **20 tests de integración contra `sicfi-dev` real**, en 5 archivos, sin residuos
+- [x] `pnpm lint && pnpm typecheck && pnpm build && pnpm test` en verde
+
+### ⬜ Pendiente (Opus — el aislamiento de tenant)
+- [ ] `tenantExtension` de Prisma — inyecta `householdId` en toda operación
+- [ ] `TenantContext` con `AsyncLocalStorage` — guarda el household activo de la request
+- [ ] Test explícito: una consulta sin tenant en contexto lanza excepción (DoD literal de la fase)
+
+### Decisiones tomadas en la parte de Sonnet
+| Decisión | Motivo |
+|----------|--------|
+| **Todo Decimal se serializa a `string`** en ambas direcciones del mapper | El `decimal.js` interno de Prisma y el clon propio de `Money`/`Percentage` son instancias de librería distintas; pasar un `Decimal` de una a la otra directamente arriesga un `instanceof` que falla en silencio. `.toString()`/`.toFixed()` lo evita del todo. |
+| `exchangeRate` **nunca** pasa por `Money` al leerlo | `Money.of` redondea a 2 decimales (`MINOR_UNITS`); la tasa necesita los 8 de `Decimal(18,8)`. Se usa `decimal.js` directo. Bug real que se corrigió antes de commitear, al escribir el primer test de integración multimoneda. |
+| El ALS de `PrismaUnitOfWork` es un mecanismo **separado** del `TenantContext` pendiente | Uno resuelve "¿qué cliente de Prisma uso ahora?" (transacciones), el otro "¿de qué household son estos datos?" (seguridad). Mezclarlos habría sido tocar el tenant bajo otro nombre sin pedir el cambio a Opus. |
+| Timeout de `PrismaUnitOfWork` subido a 30 s | El default de Prisma (5 s) no alcanza para las ~40 sentencias secuenciales de `BootstrapUserUseCase` contra el pooler remoto — verificado con el error real `Transaction not found`, no en teoría. |
+| Sin `Testcontainers`: los tests de integración corren contra `sicfi-dev` | No hay Docker en esta máquina. Es la alternativa que el propio plan preveía. Cada test crea su household aislado (`__integration_test__ …`) y lo borra en `afterAll`; verificado sin residuos tras cada corrida. |
+
+### 🐛 Bug real encontrado por el primer test de integración (no por inspección)
+`BootstrapUserUseCase.findOrCreateHousehold` buscaba con `households.findById(command.userId)`
+pero creaba el household con un id **generado aparte** — nunca iban a coincidir. Cada reintento
+del onboarding creaba un household duplicado, con su propio catálogo completo. El test de
+idempotencia de la Fase 4 (con dobles en memoria) no lo detectó porque comparaba conteos del
+catálogo del household que devolvía la SEGUNDA llamada contra sí misma, nunca si era el MISMO
+household que la primera — un duplicado con el catálogo correcto pasaba esa comprobación igual.
+Corregido buscando por la relación real: `HouseholdMemberRepository.findByUserAcrossHouseholds`.
+La aserción débil de Fase 4 también se corrigió (`docs/PROGRESO.md` no repite el detalle: ver el
+diff de `bootstrap-user.use-case.spec.ts` en el commit `3a6606f`).
+
+### ⚠️ Hallazgo de rendimiento — vigilar antes de la Fase 13
+`BootstrapUserUseCase` tarda **~25 s** contra el pooler remoto de `sicfi-dev` en pruebas reales
+(~40 sentencias secuenciales: 24 quincenas + 24 categorías + 7 métodos + 1 fondo, cada una un
+round-trip a AWS us-east-2). El plan free de Vercel corta una función serverless a los **10 s**.
+Si el onboarding real se comporta igual en producción, hay que optimizar antes de la Fase 13:
+candidatos obvios son `createMany` con `skipDuplicates` para los lotes de creación pura y saltar
+la comprobación de existencia fila-a-fila en `seedCatalog` cuando ya se sabe que el household es
+nuevo. No se tocó en esta fase: es una optimización de una fase futura, no infraestructura básica.
+
+### Notas para quien siga (y para la parte de Opus que falta)
+- `PrismaRepositoryBase` da a cada repositorio un getter `client` que ya resuelve la transacción
+  activa; los repositorios de la Fase 6/7 deben heredar de ahí, nunca usar `this.prisma` directo.
+- Los tests de integración tienen su propia config: `vitest.integration.config.ts` (carga `.env`,
+  timeouts largos). La de unit tests EXCLUYE `test/integration/**` a propósito — antes de este
+  commit el glob de la config normal los habría recogido igual y habrían fallado por falta de
+  `DATABASE_URL`.
+- `test/integration/support/test-household.ts` es el harness reutilizable: crea un household+usuario
+  aislado y lo borra en cascada. Reutilízalo para cualquier test de integración futuro.
+- No hay `*.module.ts` todavía en ningún contexto — la Fase 5 no lo pedía. El cableado real de DI
+  (`{ provide: CATEGORY_REPOSITORY, useClass: PrismaCategoryRepository }`) queda para cuando la
+  Fase 6/7 construya los módulos de Nest con sus controladores.
+
+---
+
 ## Bitácora de commits por fase
 
 | Fase | Commit | Fecha |
@@ -300,3 +365,4 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 | 3 | `844748c` — `feat(fase-3): kernel de dominio, Money multimoneda y cálculo de quincena` | 2026-09-01 |
 | 3 | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas` | 2026-09-01 |
 | 4 | `fcbba35` — `feat(fase-4): capa de aplicación — casos de uso CRUD de los 5 contextos` | 2026-09-01 |
+| 5 | `3a6606f` — `feat(fase-5): repositorios Prisma, PrismaUnitOfWork y tests de integración` | 2026-09-01 |
