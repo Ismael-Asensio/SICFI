@@ -23,7 +23,7 @@
     "db:deploy": "turbo db:deploy",
     "db:seed": "turbo db:seed",
     "db:studio": "turbo db:studio",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
