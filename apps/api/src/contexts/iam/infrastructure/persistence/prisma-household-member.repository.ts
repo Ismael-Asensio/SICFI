@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { HouseholdMember } from '../../domain/household-member.entity';
 import type { HouseholdMemberRepository } from '../../domain/household-member.repository';
 import type { HouseholdRole } from '../../domain/household-policy';
@@ -13,8 +13,8 @@ export class PrismaHouseholdMemberRepository
   extends PrismaRepositoryBase
   implements HouseholdMemberRepository
 {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<HouseholdMember | null> {

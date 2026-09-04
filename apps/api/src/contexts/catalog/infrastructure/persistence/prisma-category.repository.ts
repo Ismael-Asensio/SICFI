@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { Category } from '../../domain/category.entity';
 import type { CategoryRepository } from '../../domain/category.repository';
 
@@ -9,8 +9,8 @@ import { CategoryPrismaMapper } from './category.prisma-mapper';
 
 @Injectable()
 export class PrismaCategoryRepository extends PrismaRepositoryBase implements CategoryRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<Category | null> {
@@ -44,6 +44,14 @@ export class PrismaCategoryRepository extends PrismaRepositoryBase implements Ca
         isActive: data.isActive,
         sortOrder: data.sortOrder,
       },
+    });
+  }
+
+  async createMany(categories: readonly Category[]): Promise<void> {
+    if (categories.length === 0) return;
+    await this.client.category.createMany({
+      data: categories.map(CategoryPrismaMapper.toPersistence),
+      skipDuplicates: true,
     });
   }
 

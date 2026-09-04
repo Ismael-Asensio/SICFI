@@ -6,6 +6,7 @@ import { InMemoryBudgetSettingsRepository, InMemoryPeriodRepository } from '../.
 import { InMemoryCategoryRepository, InMemoryPaymentMethodRepository, InMemorySavingsFundRepository } from '../../../../../test/doubles/catalog.doubles';
 import { InMemoryHouseholdMemberRepository, InMemoryHouseholdRepository, InMemoryProfileRepository, InMemoryUserRepository } from '../../../../../test/doubles/iam.doubles';
 import { SequentialIdGenerator } from '../../../../../test/doubles/id-generator.double';
+import { FakeTenantContext } from '../../../../../test/doubles/tenant-context.double';
 import { NoopUnitOfWork } from '../../../../../test/doubles/unit-of-work.double';
 import { DEFAULT_CATEGORIES, DEFAULT_PAYMENT_METHODS } from '../../../catalog/domain/default-catalog';
 
@@ -28,6 +29,7 @@ describe('BootstrapUserUseCase', () => {
   let categories: InMemoryCategoryRepository;
   let paymentMethods: InMemoryPaymentMethodRepository;
   let savingsFunds: InMemorySavingsFundRepository;
+  let tenant: FakeTenantContext;
   let useCase: BootstrapUserUseCase;
 
   const command: BootstrapUserCommand = {
@@ -51,6 +53,7 @@ describe('BootstrapUserUseCase', () => {
     categories = new InMemoryCategoryRepository();
     paymentMethods = new InMemoryPaymentMethodRepository();
     savingsFunds = new InMemorySavingsFundRepository();
+    tenant = new FakeTenantContext();
 
     useCase = new BootstrapUserUseCase(
       users,
@@ -63,7 +66,8 @@ describe('BootstrapUserUseCase', () => {
       paymentMethods,
       savingsFunds,
       new SequentialIdGenerator(),
-      new NoopUnitOfWork()
+      new NoopUnitOfWork(),
+      tenant
     );
   });
 

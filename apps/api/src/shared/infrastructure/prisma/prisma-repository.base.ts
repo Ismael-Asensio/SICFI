@@ -1,18 +1,17 @@
 /**
  * Base de todo repositorio Prisma.
  *
- * `client` resuelve, de forma transparente para la subclase, si hay una
- * transacción de `PrismaUnitOfWork` en curso: si la hay, la usa; si no, cae al
- * `PrismaService` singleton. Así ningún repositorio necesita saber si se está
- * ejecutando dentro de una unidad de trabajo o no.
+ * Depende de `TenantScopedPrisma`, **nunca** de `PrismaService` a secas: eso
+ * hace imposible por tipos construir un repositorio con un cliente sin
+ * aislamiento de tenant. El getter `client` resuelve además, de forma
+ * transparente, si hay una transacción en curso.
  */
-import type { PrismaService } from './prisma.service';
-import { getActiveTransactionClient, type PrismaTransactionClient } from './prisma-transaction-context';
+import type { TenantScopedClient, TenantScopedPrisma } from './tenant-scoped-prisma';
 
 export abstract class PrismaRepositoryBase {
-  protected constructor(protected readonly prisma: PrismaService) {}
+  protected constructor(private readonly scoped: TenantScopedPrisma) {}
 
-  protected get client(): PrismaService | PrismaTransactionClient {
-    return getActiveTransactionClient() ?? this.prisma;
+  protected get client(): TenantScopedClient {
+    return this.scoped.client;
   }
 }

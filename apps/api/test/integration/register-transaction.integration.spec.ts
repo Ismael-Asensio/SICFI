@@ -23,7 +23,7 @@ import {
 } from '../../src/contexts/ledger/application/use-cases/register-transaction.use-case';
 import { UpdateTransactionUseCase } from '../../src/contexts/ledger/application/use-cases/update-transaction.use-case';
 
-import { sharedPrisma } from './support/shared-prisma';
+import { scopedPrisma, sharedPrisma, tenantContext } from './support/shared-prisma';
 import { createTestHousehold, type TestHousehold } from './support/test-household';
 
 const NIO = Currency.NIO;
@@ -46,14 +46,14 @@ describe('RegisterTransactionUseCase / UpdateTransactionUseCase (integración, s
   let fundId: string;
   const periodIds: Record<number, string> = {};
 
-  const categories = new PrismaCategoryRepository(sharedPrisma);
-  const paymentMethods = new PrismaPaymentMethodRepository(sharedPrisma);
-  const recurringExpenses = new PrismaRecurringExpenseRepository(sharedPrisma);
-  const savingsFunds = new PrismaSavingsFundRepository(sharedPrisma);
-  const periods = new PrismaPeriodRepository(sharedPrisma);
-  const households = new PrismaHouseholdRepository(sharedPrisma);
-  const transactions = new PrismaTransactionRepository(sharedPrisma);
-  const exchangeRates = new PrismaExchangeRateAdapter(sharedPrisma);
+  const categories = new PrismaCategoryRepository(scopedPrisma);
+  const paymentMethods = new PrismaPaymentMethodRepository(scopedPrisma);
+  const recurringExpenses = new PrismaRecurringExpenseRepository(scopedPrisma);
+  const savingsFunds = new PrismaSavingsFundRepository(scopedPrisma);
+  const periods = new PrismaPeriodRepository(scopedPrisma);
+  const households = new PrismaHouseholdRepository(scopedPrisma);
+  const transactions = new PrismaTransactionRepository(scopedPrisma);
+  const exchangeRates = new PrismaExchangeRateAdapter(scopedPrisma);
 
   function buildRegisterUseCase(): RegisterTransactionUseCase {
     return new RegisterTransactionUseCase(
@@ -98,7 +98,7 @@ describe('RegisterTransactionUseCase / UpdateTransactionUseCase (integración, s
       isActive: true,
       sortOrder: 0,
     });
-    await categories.save(category);
+    await household.run(() => categories.save(category));
     categoryId = category.id;
 
     const fund = new SavingsFund({
@@ -111,7 +111,7 @@ describe('RegisterTransactionUseCase / UpdateTransactionUseCase (integración, s
       isDefault: true,
       isActive: true,
     });
-    await savingsFunds.save(fund);
+    await household.run(() => savingsFunds.save(fund));
     fundId = fund.id;
 
     const blueprints = PeriodFactory.buildYear(2026);
@@ -128,7 +128,7 @@ describe('RegisterTransactionUseCase / UpdateTransactionUseCase (integración, s
         plannedIncome: Money.unsafe('8500', NIO),
         plannedIncomeCurrency: NIO,
       });
-      await periods.save(period);
+      await household.run(() => periods.save(period));
       periodIds[blueprint.number] = period.id;
     }
 
@@ -168,116 +168,124 @@ describe('RegisterTransactionUseCase / UpdateTransactionUseCase (integración, s
     status: 'PAGADO',
   });
 
-  it('registra un movimiento y deriva la quincena contra Postgres real (RN-29)', async () => {
-    const result = await buildRegisterUseCase().execute(baseCommand());
+  it('registra un movimiento y deriva la quincena contra Postgres real (RN-29)', () =>
+    household.run(async () => {
+      const result = await buildRegisterUseCase().execute(baseCommand());
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.periodId).toBe(periodIds[5]); // Q1 de marzo
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.periodId).toBe(periodIds[5]); // Q1 de marzo
 
-    const row = await sharedPrisma.transaction.findUniqueOrThrow({ where: { id: result.value.id } });
-    expect(row.baseAmount.toString()).toBe('500');
-  });
+      const row = await sharedPrisma.transaction.findUniqueOrThrow({ where: { id: result.value.id } });
+      expect(row.baseAmount.toString()).toBe('500');
+  }));
 
-  it('RN-36/RN-37: la tasa Decimal(18,8) sobrevive el viaje de ida y vuelta sin perder precisión', async () => {
-    const result = await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      amount: Money.unsafe('100', USD),
-    });
+  it('RN-36/RN-37: la tasa Decimal(18,8) sobrevive el viaje de ida y vuelta sin perder precisión', () =>
+    household.run(async () => {
+      const result = await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        amount: Money.unsafe('100', USD),
+      });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
 
-    // 100 × 36.12345678 = 3612.345678 → redondeado a 2 decimales en baseAmount.
-    expect(result.value.exchangeRate.toString()).toBe('36.12345678');
-    expect(result.value.baseAmount.toFixed()).toBe('3612.35');
+      // 100 × 36.12345678 = 3612.345678 → redondeado a 2 decimales en baseAmount.
+      expect(result.value.exchangeRate.toString()).toBe('36.12345678');
+      expect(result.value.baseAmount.toFixed()).toBe('3612.35');
 
-    const row = await sharedPrisma.transaction.findUniqueOrThrow({ where: { id: result.value.id } });
-    // La fila cruda de Postgres, no lo que el mapper reconstruyó: prueba que
-    // Decimal(18,8) no se truncó en el camino de escritura.
-    expect(row.exchangeRate.toString()).toBe('36.12345678');
-  });
+      const row = await sharedPrisma.transaction.findUniqueOrThrow({ where: { id: result.value.id } });
+      // La fila cruda de Postgres, no lo que el mapper reconstruyó: prueba que
+      // Decimal(18,8) no se truncó en el camino de escritura.
+      expect(row.exchangeRate.toString()).toBe('36.12345678');
+  }));
 
-  it('usa la tasa más reciente ANTERIOR cuando no hay una exacta para la fecha (RN-37)', async () => {
-    const result = await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      date: date('2026-02-10'), // entre las dos tasas sembradas
-      amount: Money.unsafe('100', USD),
-    });
+  it('usa la tasa más reciente ANTERIOR cuando no hay una exacta para la fecha (RN-37)', () =>
+    household.run(async () => {
+      const result = await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        date: date('2026-02-10'), // entre las dos tasas sembradas
+        amount: Money.unsafe('100', USD),
+      });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.exchangeRate.toNumber()).toBe(36.12345678);
-  });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.exchangeRate.toNumber()).toBe(36.12345678);
+  }));
 
-  it('rechaza un FIJO sin gasto fijo existente en la base (RN-26)', async () => {
-    const result = await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      type: 'FIJO',
-      recurringExpenseId: 'no-existe-de-verdad',
-    });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.details.rule).toBe('RN-26');
-  });
+  it('rechaza un FIJO sin gasto fijo existente en la base (RN-26)', () =>
+    household.run(async () => {
+      const result = await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        type: 'FIJO',
+        recurringExpenseId: 'no-existe-de-verdad',
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.details.rule).toBe('RN-26');
+  }));
 
-  it('RN-41: un retiro mayor que el saldo real del fondo se rechaza', async () => {
-    const result = await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      type: 'RETIRO_AHORRO',
-      savingsFundId: fundId,
-      amount: Money.unsafe('999999', NIO),
-    });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.details.rule).toBe('RN-41');
-  });
+  it('RN-41: un retiro mayor que el saldo real del fondo se rechaza', () =>
+    household.run(async () => {
+      const result = await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        type: 'RETIRO_AHORRO',
+        savingsFundId: fundId,
+        amount: Money.unsafe('999999', NIO),
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.details.rule).toBe('RN-41');
+  }));
 
-  it('getSavingsFundTotals agrega correctamente vía groupBy contra Postgres real', async () => {
-    await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      type: 'AHORRO',
-      savingsFundId: fundId,
-      amount: Money.unsafe('1500', NIO),
-    });
-    await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      type: 'RETIRO_AHORRO',
-      savingsFundId: fundId,
-      amount: Money.unsafe('1400', NIO),
-    });
+  it('getSavingsFundTotals agrega correctamente vía groupBy contra Postgres real', () =>
+    household.run(async () => {
+      await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        type: 'AHORRO',
+        savingsFundId: fundId,
+        amount: Money.unsafe('1500', NIO),
+      });
+      await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        type: 'RETIRO_AHORRO',
+        savingsFundId: fundId,
+        amount: Money.unsafe('1400', NIO),
+      });
 
-    const totals = await transactions.getSavingsFundTotals(household.householdId, fundId);
-    // RN-41b: el saldo neto es el que importa, no el bruto.
-    expect(totals.contributions.minus(totals.withdrawals).toFixed()).toBe('100.00');
-  });
+      const totals = await transactions.getSavingsFundTotals(household.householdId, fundId);
+      // RN-41b: el saldo neto es el que importa, no el bruto.
+      expect(totals.contributions.minus(totals.withdrawals).toFixed()).toBe('100.00');
+  }));
 
-  it('UpdateTransactionUseCase: RN-38 no recalcula la tasa si no cambian fecha ni moneda', async () => {
-    const created = await buildRegisterUseCase().execute({
-      ...baseCommand(),
-      amount: Money.unsafe('100', USD),
-    });
-    if (!created.ok) throw created.error;
-    expect(created.value.exchangeRate.toNumber()).toBe(36.12345678);
+  it('UpdateTransactionUseCase: RN-38 no recalcula la tasa si no cambian fecha ni moneda', () =>
+    household.run(async () => {
+      const created = await buildRegisterUseCase().execute({
+        ...baseCommand(),
+        amount: Money.unsafe('100', USD),
+      });
+      if (!created.ok) throw created.error;
+      expect(created.value.exchangeRate.toNumber()).toBe(36.12345678);
 
-    const updated = await buildUpdateUseCase().execute({
-      householdId: household.householdId,
-      transactionId: created.value.id,
-      concept: 'Concepto editado, mismo importe',
-    });
+      const updated = await buildUpdateUseCase().execute({
+        householdId: household.householdId,
+        transactionId: created.value.id,
+        concept: 'Concepto editado, mismo importe',
+      });
 
-    expect(updated.ok).toBe(true);
-    if (updated.ok) expect(updated.value.exchangeRate.toNumber()).toBe(36.12345678);
-  });
+      expect(updated.ok).toBe(true);
+      if (updated.ok) expect(updated.value.exchangeRate.toNumber()).toBe(36.12345678);
+  }));
 
-  it('UpdateTransactionUseCase: re-deriva la quincena si cambia la fecha, contra Postgres real', async () => {
-    const created = await buildRegisterUseCase().execute(baseCommand()); // marzo
-    if (!created.ok) throw created.error;
+  it('UpdateTransactionUseCase: re-deriva la quincena si cambia la fecha, contra Postgres real', () =>
+    household.run(async () => {
+      const created = await buildRegisterUseCase().execute(baseCommand()); // marzo
+      if (!created.ok) throw created.error;
 
-    const updated = await buildUpdateUseCase().execute({
-      householdId: household.householdId,
-      transactionId: created.value.id,
-      date: date('2026-07-20'),
-    });
+      const updated = await buildUpdateUseCase().execute({
+        householdId: household.householdId,
+        transactionId: created.value.id,
+        date: date('2026-07-20'),
+      });
 
-    expect(updated.ok).toBe(true);
-    if (updated.ok) expect(updated.value.periodId).toBe(periodIds[14]); // Q2 de julio
-  });
+      expect(updated.ok).toBe(true);
+      if (updated.ok) expect(updated.value.periodId).toBe(periodIds[14]); // Q2 de julio
+  }));
 });

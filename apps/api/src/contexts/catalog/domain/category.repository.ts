@@ -8,5 +8,7 @@ export interface CategoryRepository {
   findByName(householdId: string, name: string): Promise<Category | null>;
   findMany(householdId: string, options?: { activeOnly?: boolean }): Promise<Category[]>;
   save(category: Category): Promise<void>;
+  /** Alta en lote de filas nuevas; ignora las que ya existan por id. */
+  createMany(categories: readonly Category[]): Promise<void>;
   delete(householdId: string, id: string): Promise<void>;
 }

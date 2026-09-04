@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { SavingsFund } from '../../domain/savings-fund.entity';
 import type { SavingsFundRepository } from '../../domain/savings-fund.repository';
 
@@ -9,8 +9,8 @@ import { SavingsFundPrismaMapper } from './savings-fund.prisma-mapper';
 
 @Injectable()
 export class PrismaSavingsFundRepository extends PrismaRepositoryBase implements SavingsFundRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<SavingsFund | null> {

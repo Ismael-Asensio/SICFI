@@ -5,6 +5,7 @@ import type { IdGenerator } from '../../../../shared/domain/id-generator.port';
 import { Money } from '../../../../shared/domain/money.vo';
 import { Percentage } from '../../../../shared/domain/percentage.vo';
 import { ok, type Result } from '../../../../shared/domain/result';
+import type { TenantContext } from '../../../../shared/domain/tenant-context.port';
 import type { UnitOfWork } from '../../../../shared/domain/unit-of-work.port';
 import { BudgetSettings } from '../../../budget/domain/budget-settings.entity';
 import type { BudgetSettingsRepository } from '../../../budget/domain/budget-settings.repository';
@@ -71,24 +72,36 @@ export class BootstrapUserUseCase {
     private readonly paymentMethods: PaymentMethodRepository,
     private readonly savingsFunds: SavingsFundRepository,
     private readonly ids: IdGenerator,
-    private readonly unitOfWork: UnitOfWork
+    private readonly unitOfWork: UnitOfWork,
+    private readonly tenant: TenantContext
   ) {}
 
   /**
    * Todo el onboarding es una sola transacción: si falla al sembrar el
    * catálogo, no debe quedar a medias un household sin sus quincenas.
+   *
+   * ⚠️ Este es **el único caso de uso que abre el ámbito de sistema**, y tiene
+   * que serlo: crea el household, así que no puede exigir uno ya existente en
+   * el contexto — sería un círculo. El tramo de sistema se mantiene tan corto
+   * como se puede: en cuanto el household existe, el resto del alta pasa a
+   * ámbito estricto y queda filtrado por él como cualquier otra operación.
    */
   execute(command: BootstrapUserCommand): Promise<Result<BootstrappedUser, DomainError>> {
-    return this.unitOfWork.run(async () => {
-      const user = await this.findOrCreateUser(command);
-      const household = await this.findOrCreateHousehold(command);
-      const membership = await this.findOrCreateMembership(household.id, user.id);
-      const profile = await this.findOrCreateProfile(command, user.id, household.id);
-      const { settings, periods } = await this.findOrCreateBudget(command, household.id);
-      await this.seedCatalog(household.id, command.baseCurrency);
+    return this.unitOfWork.run(() =>
+      this.tenant.runAsSystem(async () => {
+        const user = await this.findOrCreateUser(command);
+        const household = await this.findOrCreateHousehold(command);
 
-      return ok({ user, profile, household, membership, settings, periods });
-    });
+        return this.tenant.runWith({ householdId: household.id, userId: user.id }, async () => {
+          const membership = await this.findOrCreateMembership(household.id, user.id);
+          const profile = await this.findOrCreateProfile(command, user.id, household.id);
+          const { settings, periods } = await this.findOrCreateBudget(command, household.id);
+          await this.seedCatalog(household.id, command.baseCurrency);
+
+          return ok({ user, profile, household, membership, settings, periods });
+        });
+      })
+    );
   }
 
   private async findOrCreateUser(command: BootstrapUserCommand): Promise<User> {
@@ -205,41 +218,55 @@ export class BootstrapUserUseCase {
     return { settings, periods };
   }
 
+  /**
+   * Siembra el catálogo con DOS viajes a la base por tabla —uno para leer lo
+   * que ya hay, otro para insertar lo que falta— en vez de dos por fila.
+   *
+   * La versión ingenua (`findByName` + `save` por cada una de las 31 entradas)
+   * costaba ~62 idas y vueltas contra el pooler remoto, y era la causa
+   * principal de que toda el alta superara el timeout de la transacción.
+   * La idempotencia se conserva: lo que ya existe simplemente no se vuelve a
+   * insertar.
+   */
   private async seedCatalog(householdId: string, baseCurrency: Currency): Promise<void> {
-    for (const [index, category] of DEFAULT_CATEGORIES.entries()) {
-      const existing = await this.categories.findByName(householdId, category.name);
-      if (existing) continue;
+    const existingCategories = await this.categories.findMany(householdId);
+    const existingCategoryNames = new Set(existingCategories.map((category) => category.name));
 
-      await this.categories.save(
-        new Category({
-          id: this.ids.generate(),
-          householdId,
-          name: category.name,
-          kind: category.kind,
-          color: null,
-          icon: null,
-          isSystem: true,
-          isActive: true,
-          sortOrder: index,
-        })
+    const missingCategories = DEFAULT_CATEGORIES.map((category, index) => ({ category, index }))
+      .filter(({ category }) => !existingCategoryNames.has(category.name))
+      .map(
+        ({ category, index }) =>
+          new Category({
+            id: this.ids.generate(),
+            householdId,
+            name: category.name,
+            kind: category.kind,
+            color: null,
+            icon: null,
+            isSystem: true,
+            isActive: true,
+            sortOrder: index,
+          })
       );
-    }
+    await this.categories.createMany(missingCategories);
 
-    for (const [index, name] of DEFAULT_PAYMENT_METHODS.entries()) {
-      const existing = await this.paymentMethods.findByName(householdId, name);
-      if (existing) continue;
+    const existingMethods = await this.paymentMethods.findMany(householdId);
+    const existingMethodNames = new Set(existingMethods.map((method) => method.name));
 
-      await this.paymentMethods.save(
-        new PaymentMethod({
-          id: this.ids.generate(),
-          householdId,
-          name,
-          isSystem: true,
-          isActive: true,
-          sortOrder: index,
-        })
+    const missingMethods = DEFAULT_PAYMENT_METHODS.map((name, index) => ({ name, index }))
+      .filter(({ name }) => !existingMethodNames.has(name))
+      .map(
+        ({ name, index }) =>
+          new PaymentMethod({
+            id: this.ids.generate(),
+            householdId,
+            name,
+            isSystem: true,
+            isActive: true,
+            sortOrder: index,
+          })
       );
-    }
+    await this.paymentMethods.createMany(missingMethods);
 
     const existingFund = await this.savingsFunds.findByName(householdId, DEFAULT_SAVINGS_FUND_NAME);
     if (!existingFund) {

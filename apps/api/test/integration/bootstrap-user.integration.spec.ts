@@ -18,7 +18,7 @@ import { PrismaProfileRepository } from '../../src/contexts/iam/infrastructure/p
 import { PrismaUserRepository } from '../../src/contexts/iam/infrastructure/persistence/prisma-user.repository';
 import { BootstrapUserUseCase } from '../../src/contexts/iam/application/use-cases/bootstrap-user.use-case';
 
-import { sharedPrisma } from './support/shared-prisma';
+import { scopedPrisma, sharedPrisma, tenantContext } from './support/shared-prisma';
 
 /**
  * Vertical slice completo: 8 repositorios Prisma reales + PrismaUnitOfWork +
@@ -41,17 +41,18 @@ describe('BootstrapUserUseCase (integración, sicfi-dev)', () => {
 
   function buildUseCase(): BootstrapUserUseCase {
     return new BootstrapUserUseCase(
-      new PrismaUserRepository(sharedPrisma),
-      new PrismaProfileRepository(sharedPrisma),
-      new PrismaHouseholdRepository(sharedPrisma),
-      new PrismaHouseholdMemberRepository(sharedPrisma),
-      new PrismaBudgetSettingsRepository(sharedPrisma),
-      new PrismaPeriodRepository(sharedPrisma),
-      new PrismaCategoryRepository(sharedPrisma),
-      new PrismaPaymentMethodRepository(sharedPrisma),
-      new PrismaSavingsFundRepository(sharedPrisma),
+      new PrismaUserRepository(scopedPrisma),
+      new PrismaProfileRepository(scopedPrisma),
+      new PrismaHouseholdRepository(scopedPrisma),
+      new PrismaHouseholdMemberRepository(scopedPrisma),
+      new PrismaBudgetSettingsRepository(scopedPrisma),
+      new PrismaPeriodRepository(scopedPrisma),
+      new PrismaCategoryRepository(scopedPrisma),
+      new PrismaPaymentMethodRepository(scopedPrisma),
+      new PrismaSavingsFundRepository(scopedPrisma),
       new RandomIdGenerator(),
-      new PrismaUnitOfWork(sharedPrisma)
+      new PrismaUnitOfWork(scopedPrisma),
+      tenantContext
     );
   }
 

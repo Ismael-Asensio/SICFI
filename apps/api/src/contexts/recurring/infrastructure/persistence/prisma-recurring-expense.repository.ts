@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { RecurringExpense } from '../../domain/recurring-expense.entity';
 import type { RecurringExpenseRepository } from '../../domain/recurring-expense.repository';
 
@@ -12,8 +12,8 @@ export class PrismaRecurringExpenseRepository
   extends PrismaRepositoryBase
   implements RecurringExpenseRepository
 {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<RecurringExpense | null> {

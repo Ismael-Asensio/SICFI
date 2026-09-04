@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import type { CalendarDate } from '../../../../shared/domain/calendar-date.vo';
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { Period } from '../../domain/period.entity';
 import type { PeriodRepository } from '../../domain/period.repository';
 
@@ -10,8 +10,8 @@ import { PeriodPrismaMapper } from './period.prisma-mapper';
 
 @Injectable()
 export class PrismaPeriodRepository extends PrismaRepositoryBase implements PeriodRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<Period | null> {
@@ -55,12 +55,15 @@ export class PrismaPeriodRepository extends PrismaRepositoryBase implements Peri
   }
 
   /**
-   * Secuencial a propósito: dentro de una `PrismaUnitOfWork`, todas las
-   * consultas comparten una única conexión y deben serializarse.
+   * Un solo viaje para las 24 quincenas. Hacerlo con 24 `upsert` secuenciales
+   * costaba ~7 s contra el pooler remoto y era una de las razones de que el
+   * alta de usuario agotara el timeout de la transacción.
    */
   async saveMany(periods: readonly Period[]): Promise<void> {
-    for (const period of periods) {
-      await this.save(period);
-    }
+    if (periods.length === 0) return;
+    await this.client.period.createMany({
+      data: periods.map(PeriodPrismaMapper.toPersistence),
+      skipDuplicates: true,
+    });
   }
 }

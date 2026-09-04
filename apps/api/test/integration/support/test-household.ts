@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto';
 
-import { sharedPrisma } from './shared-prisma';
+import { sharedPrisma, tenantContext } from './shared-prisma';
 
 export interface TestHousehold {
   householdId: string;
   userId: string;
+  /**
+   * Ejecuta el cuerpo del test dentro del ámbito de tenant de este household.
+   * Sin esto, la `tenantExtension` lanza `MissingTenantError` — que es
+   * exactamente lo que debe hacer.
+   */
+  run<T>(work: () => Promise<T>): Promise<T>;
   /** Borra el household (cascada) y el usuario. Llamar siempre en `afterAll`. */
   cleanup(): Promise<void>;
 }
@@ -40,6 +46,9 @@ export async function createTestHousehold(
   return {
     householdId,
     userId,
+    run<T>(work: () => Promise<T>): Promise<T> {
+      return tenantContext.runWith({ householdId, userId }, work);
+    },
     async cleanup() {
       // El borrado del household encadena (Cascade) todas sus tablas de datos
       // — categorías, quincenas, movimientos, etc. — en el orden correcto

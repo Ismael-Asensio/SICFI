@@ -13,12 +13,12 @@ import type { ExchangeRateProvider, ExchangeRateQuery } from '../../domain/excha
 import { ExchangeRate, type ExchangeRateSource } from '../../domain/exchange-rate.vo';
 
 import { PrismaRepositoryBase } from './prisma-repository.base';
-import { PrismaService } from './prisma.service';
+import { TenantScopedPrisma } from './tenant-scoped-prisma';
 
 @Injectable()
 export class PrismaExchangeRateAdapter extends PrismaRepositoryBase implements ExchangeRateProvider {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findEffectiveRate(query: ExchangeRateQuery): Promise<ExchangeRate | null> {

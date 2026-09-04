@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { PaymentMethod } from '../../domain/payment-method.entity';
 import type { PaymentMethodRepository } from '../../domain/payment-method.repository';
 
@@ -9,8 +9,8 @@ import { PaymentMethodPrismaMapper } from './payment-method.prisma-mapper';
 
 @Injectable()
 export class PrismaPaymentMethodRepository extends PrismaRepositoryBase implements PaymentMethodRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<PaymentMethod | null> {
@@ -39,6 +39,14 @@ export class PrismaPaymentMethodRepository extends PrismaRepositoryBase implemen
       where: { id: paymentMethod.id },
       create: data,
       update: { name: data.name, isActive: data.isActive, sortOrder: data.sortOrder },
+    });
+  }
+
+  async createMany(paymentMethods: readonly PaymentMethod[]): Promise<void> {
+    if (paymentMethods.length === 0) return;
+    await this.client.paymentMethod.createMany({
+      data: paymentMethods.map(PaymentMethodPrismaMapper.toPersistence),
+      skipDuplicates: true,
     });
   }
 

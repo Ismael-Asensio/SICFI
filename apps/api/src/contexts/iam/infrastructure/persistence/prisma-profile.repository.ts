@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import type { Profile } from '../../domain/profile.entity';
 import type { ProfileRepository } from '../../domain/profile.repository';
 
@@ -9,8 +9,8 @@ import { ProfilePrismaMapper } from './profile.prisma-mapper';
 
 @Injectable()
 export class PrismaProfileRepository extends PrismaRepositoryBase implements ProfileRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findByUserId(userId: string): Promise<Profile | null> {

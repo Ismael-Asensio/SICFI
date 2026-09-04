@@ -30,6 +30,13 @@ export class InMemoryCategoryRepository implements CategoryRepository {
     return Promise.resolve();
   }
 
+  createMany(categories: readonly Category[]): Promise<void> {
+    for (const category of categories) {
+      if (!this.rows.has(category.id)) this.rows.set(category.id, category);
+    }
+    return Promise.resolve();
+  }
+
   delete(householdId: string, id: string): Promise<void> {
     const row = this.rows.get(id);
     if (row && row.householdId === householdId) this.rows.delete(id);
@@ -59,6 +66,13 @@ export class InMemoryPaymentMethodRepository implements PaymentMethodRepository 
 
   save(paymentMethod: PaymentMethod): Promise<void> {
     this.rows.set(paymentMethod.id, paymentMethod);
+    return Promise.resolve();
+  }
+
+  createMany(paymentMethods: readonly PaymentMethod[]): Promise<void> {
+    for (const paymentMethod of paymentMethods) {
+      if (!this.rows.has(paymentMethod.id)) this.rows.set(paymentMethod.id, paymentMethod);
+    }
     return Promise.resolve();
   }
 

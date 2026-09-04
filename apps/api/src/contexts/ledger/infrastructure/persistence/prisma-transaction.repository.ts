@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { Currency } from '../../../../shared/domain/currency.vo';
 import { PrismaRepositoryBase } from '../../../../shared/infrastructure/prisma/prisma-repository.base';
-import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { TenantScopedPrisma } from '../../../../shared/infrastructure/prisma/tenant-scoped-prisma';
 import { Money } from '../../../../shared/domain/money.vo';
 import type {
   SavingsFundTotals,
@@ -15,8 +15,8 @@ import { TransactionPrismaMapper } from './transaction.prisma-mapper';
 
 @Injectable()
 export class PrismaTransactionRepository extends PrismaRepositoryBase implements TransactionRepository {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(scoped: TenantScopedPrisma) {
+    super(scoped);
   }
 
   async findById(householdId: string, id: string): Promise<Transaction | null> {

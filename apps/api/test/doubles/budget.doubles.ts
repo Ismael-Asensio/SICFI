@@ -58,6 +58,8 @@ export class InMemoryPeriodRepository implements PeriodRepository {
   }
 
   async saveMany(periods: readonly Period[]): Promise<void> {
-    for (const period of periods) await this.save(period);
+    for (const period of periods) {
+      if (!this.rows.has(period.id)) await this.save(period);
+    }
   }
 }

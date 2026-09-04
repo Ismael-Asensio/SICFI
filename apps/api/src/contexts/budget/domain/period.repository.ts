@@ -11,5 +11,6 @@ export interface PeriodRepository {
   findByDate(householdId: string, date: CalendarDate): Promise<Period | null>;
   findByYear(householdId: string, year: number): Promise<Period[]>;
   save(period: Period): Promise<void>;
+  /** Alta en lote de quincenas nuevas; ignora las que ya existan por id. */
   saveMany(periods: readonly Period[]): Promise<void>;
 }
