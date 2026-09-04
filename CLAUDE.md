@@ -103,6 +103,9 @@ el diseño está mal.
 | Saldo y ahorro efectivo | `SavingsFundBalanceCalculator` |
 | Permisos por rol | `HouseholdPolicy` |
 | Alertas | `AlertEngine` + `ALERT_RULES` |
+| Household activo | puerto `TenantContext` (`runWith` / `runAsSystem`) |
+| Transacción multi-repositorio | puerto `UnitOfWork` (`PrismaUnitOfWork`) |
+| Id de una entidad nueva | puerto `IdGenerator` — nunca `cuid()` a mano |
 
 ### Bounded contexts
 
@@ -253,11 +256,33 @@ Ninguna alerta con dependencia de fechas se evalúa antes de `BudgetSettings.con
 
 ## 7. SEGURIDAD — triple capa de aislamiento
 
-1. **`JwtAuthGuard` global** — verifica firma JWKS, extrae `sub`, resuelve el household activo y lo
-   mete en `AsyncLocalStorage`. Todo es privado salvo `@Public()`.
+1. **`JwtAuthGuard` global** — verifica firma JWKS, extrae `sub`, resuelve el household activo y
+   abre el ámbito con `TenantContext.runWith(...)`. Todo es privado salvo `@Public()`. (Fase 6)
 2. **`tenantExtension` de Prisma** — inyecta `householdId` en **toda** operación de las tablas de
    datos. Si un repositorio olvida filtrar, el filtro se aplica igual. **Esta es la barrera real.**
 3. **RLS en Postgres** — defensa en profundidad.
+
+### Cómo funciona la capa 2 (implementada en la Fase 5)
+
+`TenantContext` (puerto en `shared/domain`, adaptador con `AsyncLocalStorage`) tiene **tres
+estados**, y la diferencia importa:
+
+| Estado | Cómo se entra | Efecto |
+|--------|---------------|--------|
+| Con household | `runWith({ householdId, userId }, fn)` | Toda consulta se filtra por él |
+| Sistema | `runAsSystem(fn)` — **explícito** | Sin filtro: alta de usuario, seeds, importadores |
+| Sin contexto | nadie lo estableció | **Lanza `MissingTenantError`** |
+
+Que "sin contexto" reviente en vez de devolver filas es lo que impide que un endpoint nuevo se
+olvide del tenant. `BootstrapUserUseCase` es **el único** que abre ámbito de sistema — crea el
+household, así que no puede exigir uno previo.
+
+**Todo repositorio hereda de `PrismaRepositoryBase`,** que depende de `TenantScopedPrisma` y no
+de `PrismaService`: construir un repositorio con un cliente sin aislar **no compila**.
+
+> **Lo que la capa 2 NO cubre.** `$queryRaw`/`$executeRaw` no pasan por la extensión: el SQL
+> agregado de `analytics` (Fase 8) debe filtrar `household_id` **a mano, siempre**. Las
+> escrituras anidadas (`create: { x: { create: … } }`) tampoco; hoy no se usan.
 
 > **Advertencia que hay que recordar:** si Prisma se conecta con el rol `postgres`, **RLS no se
 > aplica**. RLS protege el acceso vía cliente Supabase/PostgREST, no vía Prisma. Por eso la capa 2
@@ -379,6 +404,10 @@ proyecto entero en cada capa.
 | El lint pasa en verde pero la arquitectura se degrada | Comprueba que `eslint-plugin-boundaries` es **v5+** y que está `eslint-import-resolver-typescript`: sin el resolver no sigue los imports sin extensión y aprueba cualquier dependencia |
 | `Parsing error: "parserOptions.project" has been provided` | Un archivo no está cubierto por ningún tsconfig de la lista. Ojo: `tsconfig.build.json` excluye los `*.spec.ts` a propósito |
 | Un fijo BIMESTRAL infla los fijos presupuestados | Falta `occursInMonth`: sin cadencia se cuenta los 12 meses (RN-07) |
+| `MissingTenantError` en una petición | Falta abrir el ámbito: `TenantContext.runWith({ householdId, userId }, …)`. Es el comportamiento correcto, no un bug de la extensión |
+| Una consulta devuelve 0 filas y los datos "están ahí" | Estás en otro household, o en ninguno. Comprueba el ámbito antes de sospechar del SQL |
+| Un `upsert` falla por clave primaria duplicada | Estás intentando tocar una fila de otro household: el guardia no la encuentra, intenta crearla y choca con el PK. Es la barrera funcionando |
+| El alta de usuario agota el timeout de la transacción | Demasiadas idas y vueltas secuenciales. Usa `createMany` en lote, no `find`+`save` por fila |
 
 ---
 

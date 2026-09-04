@@ -3,9 +3,9 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-09-01 · Fase 5 EN CURSO — falta solo el tenant
-**Fase actual:** 5 — Infraestructura de persistencia
-**Modelo requerido para lo que falta:** `Opus 5` (tenantExtension + TenantContext)
+**Última actualización:** 2026-09-02 · Fase 5 cerrada
+**Fase actual:** 6 — **Auth, households y roles (crítica)**
+**Modelo requerido para la fase actual:** `Opus 5`
 
 ---
 
@@ -18,8 +18,8 @@
 | 2 | Modelo de datos, migraciones, seeds | Opus 5 | 6 | ✅ **Completada** |
 | 3 | **Núcleo de dominio** (crítica) | Opus 5 | 12 | ✅ **Completada** |
 | 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ✅ **Completada** |
-| 5 | Infraestructura de persistencia | Sonnet 5 (+**Opus** para tenant) | 7 | 🟡 Repos+UoW listos · falta el tenant |
-| 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ |
+| 5 | Infraestructura de persistencia | Sonnet 5 + Opus 5 | 7 | ✅ **Completada** |
+| 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ Siguiente |
 | 7 | API HTTP | Sonnet 5 (+Haiku para DTOs) | 7 | ⬜ |
 | 8 | **Analítica y read models** (crítica) | **Opus 5** | 10 | ⬜ |
 | 9 | Design system y shell responsive | Sonnet 5 | 6 | ⬜ |
@@ -29,7 +29,7 @@
 | 13 | CI/CD y despliegue | Sonnet 5 | 3 | ⬜ |
 | 14 | Hardening y observabilidad | Opus 5 | 4 | ⬜ |
 | 15 | Documentación y cierre | Haiku 4.5 | 2 | ⬜ |
-| | **Total** | | **104 h** | 32 % |
+| | **Total** | | **104 h** | 39 % |
 
 > El total subió de 85 h a 104 h por las decisiones D2 (households), D3 (fondos de ahorro)
 > y D4 (multimoneda), tomadas en la Fase 0.
@@ -289,9 +289,9 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 
 ---
 
-## Fase 5 — Infraestructura de persistencia 🟡
+## Fase 5 — Infraestructura de persistencia ✅
 
-**En curso** · Modelo: Sonnet 5 · Commit: `3a6606f`
+**Cerrada:** 2026-09-02 · Modelo: Sonnet 5 (repos) + Opus 5 (tenant) · Commits: `3a6606f`, `0d8dbf3`
 
 ### Hecho (Sonnet)
 - [x] 11 repositorios Prisma + su mapper dedicado, uno por puerto de la Fase 4:
@@ -305,10 +305,49 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 - [x] **20 tests de integración contra `sicfi-dev` real**, en 5 archivos, sin residuos
 - [x] `pnpm lint && pnpm typecheck && pnpm build && pnpm test` en verde
 
-### ⬜ Pendiente (Opus — el aislamiento de tenant)
-- [ ] `tenantExtension` de Prisma — inyecta `householdId` en toda operación
-- [ ] `TenantContext` con `AsyncLocalStorage` — guarda el household activo de la request
-- [ ] Test explícito: una consulta sin tenant en contexto lanza excepción (DoD literal de la fase)
+### Hecho (Opus — el aislamiento de tenant)
+- [x] `tenantExtension` de Prisma — inyecta `householdId` en toda operación de las 10 tablas
+      con discriminante, más `Household` (por su propio `id`) y `ExchangeRate` (caso especial)
+- [x] `TenantContext` como **puerto** en `shared/domain` + adaptador sobre `AsyncLocalStorage`
+- [x] `TenantScopedPrisma`: el cliente extendido, tx-aware, que usan TODOS los repositorios
+- [x] **33 tests de integración**, 12 de ellos solo de aislamiento
+
+### Definición de terminado ✅
+Tests de integración en verde · **una consulta sin tenant lanza `MissingTenantError`**, con
+comprobación añadida de que además no llegó a escribir nada.
+
+### 🔒 El modelo de aislamiento, en tres estados
+| Estado | Cómo se entra | Qué hace la extensión |
+|--------|---------------|------------------------|
+| **Con household** | `runWith({ householdId, userId })` | Filtra toda consulta por él |
+| **Sistema** | `runAsSystem()` — **declarado a propósito** | No filtra: alta de usuario, seeds, importadores |
+| **Sin contexto** | nadie lo estableció | **Lanza `MissingTenantError`** |
+
+Que "sin contexto" reviente en vez de devolver filas es lo que impide que un endpoint nuevo se
+olvide del tenant y sirva el household de otro. `BootstrapUserUseCase` es **el único** que abre
+ámbito de sistema, y tiene que serlo: crea el household, así que no puede exigir uno previo.
+Ese tramo dura lo mínimo — en cuanto el household existe, el resto del alta pasa a ámbito
+estricto y queda filtrado como cualquier otra operación.
+
+### 🐛 Fuga real encontrada por el test de aislamiento
+Para `Household`, el guardia **sobrescribía** el `id` pedido en lugar de restringirlo: pedir el
+household de otro devolvía **el propio**, en silencio. Es peor que devolver `null` — el llamante
+recibe una fila distinta de la que pidió y no se entera. Corregido acumulando el guardia en
+`AND` (que `WhereUniqueInput` admite desde Prisma 5): ahora pedir una fila ajena no encuentra
+ninguna. Los modelos con columna `householdId` no tenían el fallo, porque ahí el guardia añade
+un campo distinto en vez de pisar el que puso el llamante.
+
+### ⚡ El problema de rendimiento del alta, ya resuelto (no solo anotado)
+La extensión empujó `BootstrapUserUseCase` por encima del timeout de 30 s y lo hizo fallar. La
+causa no era el timeout sino **~96 idas y vueltas secuenciales**. Sembrar el catálogo pasó a dos
+viajes por tabla (leer lo que hay → insertar lo que falta con `createMany`) y las 24 quincenas a
+un solo `createMany`: **~96 → ~17 viajes; de 31 s que fallaban a ~9 s**, sin perder la
+idempotencia. Los puertos de `Category` y `PaymentMethod` ganaron `createMany`.
+
+> Ojo con la lectura del número: esos ~9 s son de **esta máquina contra AWS us-east-2**
+> (~500 ms por viaje). En producción, con las funciones de Vercel en la misma región que
+> Supabase, 17 viajes son décimas de segundo. La optimización vale igual, pero el riesgo de
+> chocar con el límite de 10 s de Vercel era menor de lo que sugería la medición local.
 
 ### Decisiones tomadas en la parte de Sonnet
 | Decisión | Motivo |
@@ -318,6 +357,9 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 | El ALS de `PrismaUnitOfWork` es un mecanismo **separado** del `TenantContext` pendiente | Uno resuelve "¿qué cliente de Prisma uso ahora?" (transacciones), el otro "¿de qué household son estos datos?" (seguridad). Mezclarlos habría sido tocar el tenant bajo otro nombre sin pedir el cambio a Opus. |
 | Timeout de `PrismaUnitOfWork` subido a 30 s | El default de Prisma (5 s) no alcanza para las ~40 sentencias secuenciales de `BootstrapUserUseCase` contra el pooler remoto — verificado con el error real `Transaction not found`, no en teoría. |
 | Sin `Testcontainers`: los tests de integración corren contra `sicfi-dev` | No hay Docker en esta máquina. Es la alternativa que el propio plan preveía. Cada test crea su household aislado (`__integration_test__ …`) y lo borra en `afterAll`; verificado sin residuos tras cada corrida. |
+| `TenantContext` es un **puerto** en `shared/domain`, no una clase de infraestructura | `BootstrapUserUseCase` (capa de aplicación) necesita declarar el ámbito de sistema. Con un puerto, la aplicación no depende de `AsyncLocalStorage`. |
+| `PrismaRepositoryBase` depende de `TenantScopedPrisma`, no de `PrismaService` | Hace **imposible por tipos** construir un repositorio con un cliente sin aislar. Al cambiarlo, el compilador señaló los 20 sitios a migrar: eso es justo lo que se le pide a una barrera de seguridad. |
+| `ExchangeRate` se trata aparte | Su `householdId` es NULLABLE porque las tasas globales (BCN) se comparten (RN-37). Filtrar `householdId = X` a secas habría ocultado justo esas tasas y roto la cascada del `CurrencyConverter`. Se lee "las mías **o** las globales"; se escribe solo en las mías. |
 
 ### 🐛 Bug real encontrado por el primer test de integración (no por inspección)
 `BootstrapUserUseCase.findOrCreateHousehold` buscaba con `households.findById(command.userId)`
@@ -339,7 +381,13 @@ candidatos obvios son `createMany` con `skipDuplicates` para los lotes de creaci
 la comprobación de existencia fila-a-fila en `seedCatalog` cuando ya se sabe que el household es
 nuevo. No se tocó en esta fase: es una optimización de una fase futura, no infraestructura básica.
 
-### Notas para quien siga (y para la parte de Opus que falta)
+### ⚠️ Lo que la capa 2 NO cubre (importante para la Fase 8)
+- **`$queryRaw` / `$executeRaw` no pasan por la extensión.** El SQL agregado de `analytics`
+  tendrá que filtrar por `household_id` **a mano, siempre**. Ahí no hay red de seguridad.
+- **Escrituras anidadas** (`create: { categoria: { create: … } }`): la extensión solo ve la
+  operación de primer nivel. Hoy no se usan en ningún sitio.
+
+### Notas para quien siga
 - `PrismaRepositoryBase` da a cada repositorio un getter `client` que ya resuelve la transacción
   activa; los repositorios de la Fase 6/7 deben heredar de ahí, nunca usar `this.prisma` directo.
 - Los tests de integración tienen su propia config: `vitest.integration.config.ts` (carga `.env`,
@@ -351,6 +399,13 @@ nuevo. No se tocó en esta fase: es una optimización de una fase futura, no inf
 - No hay `*.module.ts` todavía en ningún contexto — la Fase 5 no lo pedía. El cableado real de DI
   (`{ provide: CATEGORY_REPOSITORY, useClass: PrismaCategoryRepository }`) queda para cuando la
   Fase 6/7 construya los módulos de Nest con sus controladores.
+- **La Fase 6 tiene que enganchar el `JwtAuthGuard` a `TenantContext.runWith()`**: resolver el
+  `sub` del JWT → household activo del perfil → envolver el resto de la petición en ese ámbito.
+  Sin ese paso, TODA petición fallará con `MissingTenantError` — que es justo lo que se busca.
+- `prisma/seed.ts` usa un `PrismaClient` crudo y no pasa por la extensión. Es correcto: es un
+  script de sistema, equivalente a `runAsSystem`.
+- Si algún test de integración deja residuos, se purgan por el prefijo `__integration_test__`.
+  Los specs usan `try/finally` para el `cleanup()` precisamente por eso.
 
 ---
 
@@ -366,3 +421,4 @@ nuevo. No se tocó en esta fase: es una optimización de una fase futura, no inf
 | 3 | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas` | 2026-09-01 |
 | 4 | `fcbba35` — `feat(fase-4): capa de aplicación — casos de uso CRUD de los 5 contextos` | 2026-09-01 |
 | 5 | `3a6606f` — `feat(fase-5): repositorios Prisma, PrismaUnitOfWork y tests de integración` | 2026-09-01 |
+| 5 | `0d8dbf3` — `feat(fase-5): aislamiento de tenant — tenantExtension y TenantContext` | 2026-09-02 |
