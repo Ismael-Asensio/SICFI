@@ -9,6 +9,19 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color-scheme: light dark;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /*
+   * `light` a secas, no `light dark`.
+   *
+   * Toda la paleta actual está escrita en claro (slate-50, tarjetas blancas).
+   * Con `light dark`, el navegador en modo oscuro pintaba los controles de
+   * formulario con su tema oscuro: campos gris marengo dentro de una tarjeta
+   * blanca, con el texto casi ilegible.
+   *
+   * El modo oscuro de verdad —tokens y ambas paletas— es de la Fase 8. Hasta
+   * entonces, declarar un solo esquema es lo coherente: prometer los dos y
+   * cumplir uno es lo que producía el fallo.
+   */
+  color-scheme: light;
 }

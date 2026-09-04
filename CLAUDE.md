@@ -24,13 +24,13 @@ El producto existe para hacer visible esa tensión antes de que se convierta en 
 
 ## 2. DECISIONES CERRADAS (no volver a discutirlas)
 
-| # | Decisión | Elección | Consecuencia |
-|---|----------|----------|--------------|
-| D1 | Frontend | **Next.js 15 App Router** | Despliegue nativo en Vercel, tipos compartidos con Nest |
-| D2 | Discriminante de tenant | **`householdId`** (no `userId`) | Tablas `Household` + `HouseholdMember` con roles. Presupuesto compartido desde el MVP |
-| D3 | Tratamiento del ahorro | **Traslado a fondo, NO es gasto** | Tabla `SavingsFund`, tipo `RETIRO_AHORRO`, métricas `gastoReal` vs `salidasDeCaja` separadas |
-| D4 | Moneda | **Multimoneda desde el inicio** | Cada movimiento guarda moneda + tipo de cambio + monto en moneda base. Agregaciones siempre sobre `baseAmount` |
-| D5 | Multi-año | Esquema multi-año, UI de un año | `year` ya es dimensión en `Period` y `BudgetSettings` |
+| #   | Decisión                | Elección                          | Consecuencia                                                                                                   |
+| --- | ----------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| D1  | Frontend                | **Next.js 15 App Router**         | Despliegue nativo en Vercel, tipos compartidos con Nest                                                        |
+| D2  | Discriminante de tenant | **`householdId`** (no `userId`)   | Tablas `Household` + `HouseholdMember` con roles. Presupuesto compartido desde el MVP                          |
+| D3  | Tratamiento del ahorro  | **Traslado a fondo, NO es gasto** | Tabla `SavingsFund`, tipo `RETIRO_AHORRO`, métricas `gastoReal` vs `salidasDeCaja` separadas                   |
+| D4  | Moneda                  | **Multimoneda desde el inicio**   | Cada movimiento guarda moneda + tipo de cambio + monto en moneda base. Agregaciones siempre sobre `baseAmount` |
+| D5  | Multi-año               | Esquema multi-año, UI de un año   | `year` ya es dimensión en `Period` y `BudgetSettings`                                                          |
 
 > **D2, D3 y D4 se apartan del Excel original.** El Excel es monousuario, trata el ahorro como
 > gasto y es monomoneda. Cuando un número de la app no coincida con el Excel, revisa primero si
@@ -40,20 +40,20 @@ El producto existe para hacer visible esa tensión antes de que se convierta en 
 
 ## 3. STACK
 
-| Capa | Tecnología | Notas |
-|------|-----------|-------|
-| Backend | NestJS 11 · Node 22+ · TypeScript `strict` | Serverless en Vercel |
-| ORM | Prisma 6 | `DATABASE_URL` pooler `:6543`, `DIRECT_URL` `:5432` |
-| BD | Supabase Postgres (free) | Se pausa a los 7 días sin actividad → cron diario |
-| Auth | Supabase Auth (JWT) verificado por JWKS en Nest | Tokens en cookies httpOnly, nunca localStorage |
-| Frontend | Next.js 15 + React 19 | RSC para carga inicial |
-| Estilos | Tailwind CSS v4 + shadcn/ui (Radix) | Mobile-first real |
-| Estado servidor | TanStack Query v5 | `queryKeys` jerárquicas |
-| Formularios | react-hook-form + Zod | Mismo esquema Zod valida en cliente y servidor |
-| Gráficas | Recharts | |
-| Contratos | `packages/contracts` (Zod) | Fuente única de tipos api ↔ web |
-| Monorepo | pnpm workspaces + Turborepo | pnpm 11.x |
-| Tests | Vitest · Supertest · Playwright | |
+| Capa            | Tecnología                                      | Notas                                               |
+| --------------- | ----------------------------------------------- | --------------------------------------------------- |
+| Backend         | NestJS 11 · Node 22+ · TypeScript `strict`      | Serverless en Vercel                                |
+| ORM             | Prisma 6                                        | `DATABASE_URL` pooler `:6543`, `DIRECT_URL` `:5432` |
+| BD              | Supabase Postgres (free)                        | Se pausa a los 7 días sin actividad → cron diario   |
+| Auth            | Supabase Auth (JWT) verificado por JWKS en Nest | Tokens en cookies httpOnly, nunca localStorage      |
+| Frontend        | Next.js 15 + React 19                           | RSC para carga inicial                              |
+| Estilos         | Tailwind CSS v4 + shadcn/ui (Radix)             | Mobile-first real                                   |
+| Estado servidor | TanStack Query v5                               | `queryKeys` jerárquicas                             |
+| Formularios     | react-hook-form + Zod                           | Mismo esquema Zod valida en cliente y servidor      |
+| Gráficas        | Recharts                                        |                                                     |
+| Contratos       | `packages/contracts` (Zod)                      | Fuente única de tipos api ↔ web                     |
+| Monorepo        | pnpm workspaces + Turborepo                     | pnpm 11.x                                           |
+| Tests           | Vitest · Supertest · Playwright                 |                                                     |
 
 **Entorno local verificado:** Node v24.10.0 · npm 11.6.1 · pnpm 11.25.0 · git 2.43.0 · Windows 11.
 
@@ -89,34 +89,35 @@ el diseño está mal.
 
 ### Reglas de dominio que ya existen — no las reimplementes
 
-| Necesitas | Úsalo, no lo reescribas |
-|-----------|-------------------------|
-| Fechas de negocio | `CalendarDate` — **nunca `Date`** fuera de infraestructura |
-| "Hoy" | puerto `Clock` (`SystemClockAdapter` / `FixedClock` en tests) |
-| Importes | `Money` — nunca `number`, nunca `parseFloat` |
-| Calendario de quincenas | `PeriodFactory.buildYear()` |
-| Métricas de la quincena | `PeriodCalculator.calculate()` |
-| Estado de la quincena | `PeriodStatusResolver.resolve()` |
-| `appliesTo`, costos, fecha límite | `RecurringExpense` |
-| Estado de un fijo / olvidos | `FixedExpenseReconciler` |
-| Validar un movimiento | `TransactionValidator` |
-| Saldo y ahorro efectivo | `SavingsFundBalanceCalculator` |
-| Permisos por rol | `HouseholdPolicy` |
-| Alertas | `AlertEngine` + `ALERT_RULES` |
-| Household activo | puerto `TenantContext` (`runWith` / `runAsSystem`) |
-| Transacción multi-repositorio | puerto `UnitOfWork` (`PrismaUnitOfWork`) |
-| Id de una entidad nueva | puerto `IdGenerator` — nunca `cuid()` a mano |
+| Necesitas                         | Úsalo, no lo reescribas                                                 |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| Fechas de negocio                 | `CalendarDate` — **nunca `Date`** fuera de infraestructura              |
+| "Hoy"                             | puerto `Clock` (`SystemClockAdapter` / `FixedClock` en tests)           |
+| Importes                          | `Money` — nunca `number`, nunca `parseFloat`                            |
+| Calendario de quincenas           | `PeriodFactory.buildYear()`                                             |
+| Métricas de la quincena           | `PeriodCalculator.calculate()`                                          |
+| Estado de la quincena             | `PeriodStatusResolver.resolve()`                                        |
+| `appliesTo`, costos, fecha límite | `RecurringExpense`                                                      |
+| Estado de un fijo / olvidos       | `FixedExpenseReconciler`                                                |
+| Validar un movimiento             | `TransactionValidator`                                                  |
+| Saldo y ahorro efectivo           | `SavingsFundBalanceCalculator`                                          |
+| Permisos por rol                  | `HouseholdPolicy`                                                       |
+| Alertas                           | `AlertEngine` + `ALERT_RULES`                                           |
+| Household activo                  | puerto `TenantContext` (`runWith` / `runAsSystem`)                      |
+| `DomainError` → HTTP              | `toHttpException()` de `shared/infrastructure/http/domain-error.mapper` |
+| Transacción multi-repositorio     | puerto `UnitOfWork` (`PrismaUnitOfWork`)                                |
+| Id de una entidad nueva           | puerto `IdGenerator` — nunca `cuid()` a mano                            |
 
 ### Bounded contexts
 
-| Contexto | Hojas del Excel | Naturaleza |
-|----------|-----------------|-----------|
-| `iam` | — | Usuarios, households, miembros, roles, onboarding |
-| `catalog` | `Listas` | Categorías, métodos de pago, fondos de ahorro, monedas |
-| `budget` | `Config`, `Quincenas` | Settings del año, generación de 24 quincenas, ingreso |
-| `recurring` | `Fijos` | Gastos fijos, derivación de `appliesTo` |
-| `ledger` | `Registro` | Movimientos. **Núcleo transaccional** |
-| `analytics` | `Panel`, `Control`, `Historial`, `Reporte` | **Solo lectura (CQRS query side)** |
+| Contexto    | Hojas del Excel                            | Naturaleza                                             |
+| ----------- | ------------------------------------------ | ------------------------------------------------------ |
+| `iam`       | —                                          | Usuarios, households, miembros, roles, onboarding      |
+| `catalog`   | `Listas`                                   | Categorías, métodos de pago, fondos de ahorro, monedas |
+| `budget`    | `Config`, `Quincenas`                      | Settings del año, generación de 24 quincenas, ingreso  |
+| `recurring` | `Fijos`                                    | Gastos fijos, derivación de `appliesTo`                |
+| `ledger`    | `Registro`                                 | Movimientos. **Núcleo transaccional**                  |
+| `analytics` | `Panel`, `Control`, `Historial`, `Reporte` | **Solo lectura (CQRS query side)**                     |
 
 `analytics` **no tiene entidades ni repositorios de escritura**. Son proyecciones, no invariantes de
 agregado. Recibe parámetros → SQL agregado → DTO de lectura. No metas estos cálculos en entidades.
@@ -256,8 +257,9 @@ Ninguna alerta con dependencia de fechas se evalúa antes de `BudgetSettings.con
 
 ## 7. SEGURIDAD — triple capa de aislamiento
 
-1. **`JwtAuthGuard` global** — verifica firma JWKS, extrae `sub`, resuelve el household activo y
-   abre el ámbito con `TenantContext.runWith(...)`. Todo es privado salvo `@Public()`. (Fase 6)
+1. **`JwtAuthGuard` global** — verifica firma JWKS (`ES256`/`RS256` con `jose`), extrae `sub`,
+   resuelve el household activo y abre el ámbito con `TenantContext.runWith(...)`.
+   Todo es privado salvo `@Public()`. (Implementado en la Fase 6)
 2. **`tenantExtension` de Prisma** — inyecta `householdId` en **toda** operación de las tablas de
    datos. Si un repositorio olvida filtrar, el filtro se aplica igual. **Esta es la barrera real.**
 3. **RLS en Postgres** — defensa en profundidad.
@@ -267,11 +269,11 @@ Ninguna alerta con dependencia de fechas se evalúa antes de `BudgetSettings.con
 `TenantContext` (puerto en `shared/domain`, adaptador con `AsyncLocalStorage`) tiene **tres
 estados**, y la diferencia importa:
 
-| Estado | Cómo se entra | Efecto |
-|--------|---------------|--------|
-| Con household | `runWith({ householdId, userId }, fn)` | Toda consulta se filtra por él |
-| Sistema | `runAsSystem(fn)` — **explícito** | Sin filtro: alta de usuario, seeds, importadores |
-| Sin contexto | nadie lo estableció | **Lanza `MissingTenantError`** |
+| Estado        | Cómo se entra                          | Efecto                                           |
+| ------------- | -------------------------------------- | ------------------------------------------------ |
+| Con household | `runWith({ householdId, userId }, fn)` | Toda consulta se filtra por él                   |
+| Sistema       | `runAsSystem(fn)` — **explícito**      | Sin filtro: alta de usuario, seeds, importadores |
+| Sin contexto  | nadie lo estableció                    | **Lanza `MissingTenantError`**                   |
 
 Que "sin contexto" reviente en vez de devolver filas es lo que impide que un endpoint nuevo se
 olvide del tenant. `BootstrapUserUseCase` es **el único** que abre ámbito de sistema — crea el
@@ -288,11 +290,44 @@ de `PrismaService`: construir un repositorio con un cliente sin aislar **no comp
 > aplica**. RLS protege el acceso vía cliente Supabase/PostgREST, no vía Prisma. Por eso la capa 2
 > es la que de verdad aísla. Nunca la desactives "temporalmente para depurar".
 
+### Los tres niveles de acceso de una ruta (Fase 6)
+
+| Decorador     | Exige JWT | Exige household | Para qué                                                   |
+| ------------- | :-------: | :-------------: | ---------------------------------------------------------- |
+| `@Public()`   |    no     |       no        | `/health`, y poco más                                      |
+| `@NoTenant()` |    sí     |       no        | alta del usuario, listar mis households, cambiar de activo |
+| _(ninguno)_   |    sí     |       sí        | **el default**: todo lo demás                              |
+
+Que el default sea el más estricto es deliberado: **olvidarse de decorar una ruta la deja
+cerrada, no abierta.** Un JWT válido sin household da `403 USER_NOT_PROVISIONED` — es un estado
+distinto de "no autenticado", y el frontend lo usa para saber que debe llamar a `/auth/bootstrap`
+en vez de volver al login.
+
+`@RequireRole('ADMIN')` cubre los permisos que dependen **solo** del rol. Los que dependen del
+recurso —si un `MEMBER` puede editar _este_ movimiento— **no son un guard**: se resuelven en el
+caso de uso con `HouseholdPolicy.canModifyTransaction`, que es donde el movimiento ya está
+cargado. Un guard tendría que volver a consultarlo y metería acceso a datos en el transporte.
+
 **Test bloqueante en CI:** dos households A y B; B intenta leer/editar/borrar cada recurso de A por
 id. Toda respuesta debe ser `404` (no `403`: no se filtra la existencia del recurso).
 
-**Nunca:** `SUPABASE_SERVICE_ROLE_KEY` en el cliente ni con prefijo `NEXT_PUBLIC_`. Nada de montos
-ni datos personales en los logs.
+**Nunca:** la clave `secret` de Supabase (antes `service_role`) en el cliente, con prefijo
+`NEXT_PUBLIC_`, **ni en ningún archivo del repo**. No hace falta: el backend verifica los JWT
+contra el JWKS público. Solo viajan al navegador `NEXT_PUBLIC_SUPABASE_URL` y la clave
+_publishable_. Nada de montos ni datos personales en los logs.
+
+### Frontend (Fase 6)
+
+- Sesión en **cookies httpOnly** vía `@supabase/ssr`, nunca en `localStorage`.
+- Tres clientes, uno por runtime: `browser-client.ts` (memoizado — varias instancias se pisan
+  rotando el mismo refresh token), `server-client.ts` (RSC/actions) y `middleware-client.ts`.
+- **`getUser()`, nunca `getSession()`** en servidor y middleware: `getSession()` se cree la
+  cookie sin comprobar la firma.
+- `middleware.ts` refresca la sesión en toda navegación —es lo que rota el access token, que
+  dura una hora— y protege por **lista de rutas públicas**, no de rutas protegidas: una ruta
+  nueva sin tocar el middleware queda pidiendo sesión.
+- Todo destino de redirección (`?siguiente=`) se valida como **ruta relativa**, rechazando
+  también `//otro-sitio` (protocol-relative). Si no, el login es un open redirect.
 
 ---
 
@@ -359,21 +394,26 @@ pnpm db:studio
 ## 10. CÓMO TRABAJAR EN ESTE REPO (para el asistente)
 
 ### Al empezar una sesión
+
 1. Lee `docs/PROGRESO.md` — dice exactamente en qué fase estás y qué falta.
 2. **No leas todo el repo.** Pide rutas concretas o usa el agente `Explore` solo para localizar.
 3. Al terminar una fase: commit + actualizar `docs/PROGRESO.md` + avisar del cambio de modelo.
 
 ### Trabajo por verticales, no por capas
+
 Implementa **un contexto completo** (dominio → aplicación → infra → HTTP → UI) antes de pasar al
 siguiente. Nunca "todas las entidades, luego todos los repositorios": eso obliga a recargar el
 proyecto entero en cada capa.
 
 ### Explota la plantilla
+
 `contexts/ledger` es el contexto de referencia. Para implementar otro:
+
 > "Replica la estructura de `contexts/ledger`. Lee solo `transaction.entity.ts` y
 > `register-transaction.use-case.ts` como referencia. Campos en `schema.prisma`, reglas RN-XX."
 
 ### No hacer
+
 - No leas `prisma/migrations/` salvo que se pida explícitamente.
 - No reescribas un archivo completo para cambiar tres líneas.
 - No inventes campos que no estén en `schema.prisma`.
@@ -384,30 +424,35 @@ proyecto entero en cada capa.
 
 ## 11. TRAMPAS CONOCIDAS (checklist de depuración)
 
-| Síntoma | Causa probable |
-|---------|----------------|
-| Los números no cuadran con el Excel | Revisa primero D3 (ahorro no es gasto) y D4 (multimoneda) antes de buscar un bug |
-| `SUM` de un reporte da raro con varias monedas | Estás sumando `amount` en vez de `baseAmount` (RN-36) |
-| Un gasto aparece en la quincena equivocada | Zona horaria: se usó `new Date()` del cliente en vez del `Clock` del servidor con la tz del household |
-| Un gasto "se movió al día anterior" | Se guardó como `timestamptz` en vez de `@db.Date` |
-| Fijo mensual con `dueDay=31` explota en febrero | Falta el `min(dueDay, díaFinQuincena)` de RN-21 |
-| `0.30000000000000004` en un total | Alguien usó `number` en vez de `Decimal` |
-| "Too many connections" en Postgres | Falta `pgbouncer=true&connection_limit=1`, o `PrismaService` no es singleton global |
-| `P1001 Can't reach database server` | Estás usando la conexión directa `db.<ref>.supabase.co`: solo tiene registro AAAA (IPv6) y el plan free no da IPv4. Usa el pooler `aws-0-us-east-2.pooler.supabase.com`, con usuario `postgres.<project-ref>` |
-| `P2022 column does not exist` | Cambiaste un `@map`/`@@map` y no corriste `prisma generate`: el cliente cacheado apunta a los nombres viejos |
-| Una contraseña con `+`, `#` o `@` rompe la conexión | Hay que codificarla en la URL (`%2B`, `%23`, `%40`); un `#` sin codificar trunca la cadena entera |
-| Timeout de 10 s en un reporte | Se están trayendo filas a memoria para sumarlas en JS. Agrega en SQL |
-| Usuario nuevo inundado de alertas de "olvidaste pagar" | No se está respetando `controlStartDate` (RN-35) |
-| La app cayó de un día para otro sin cambios | Supabase free se pausó por 7 días de inactividad → cron diario |
-| `prisma migrate` falla pero la app conecta bien | Migraciones necesitan `DIRECT_URL` (`:5432`), no el pooler |
-| Tras un `pnpm install`, el typecheck falla con `Untyped function calls…` en Prisma | El install borra el cliente generado. Lo arregla el `postinstall: prisma generate`; si no, córrelo a mano |
-| El lint pasa en verde pero la arquitectura se degrada | Comprueba que `eslint-plugin-boundaries` es **v5+** y que está `eslint-import-resolver-typescript`: sin el resolver no sigue los imports sin extensión y aprueba cualquier dependencia |
-| `Parsing error: "parserOptions.project" has been provided` | Un archivo no está cubierto por ningún tsconfig de la lista. Ojo: `tsconfig.build.json` excluye los `*.spec.ts` a propósito |
-| Un fijo BIMESTRAL infla los fijos presupuestados | Falta `occursInMonth`: sin cadencia se cuenta los 12 meses (RN-07) |
-| `MissingTenantError` en una petición | Falta abrir el ámbito: `TenantContext.runWith({ householdId, userId }, …)`. Es el comportamiento correcto, no un bug de la extensión |
-| Una consulta devuelve 0 filas y los datos "están ahí" | Estás en otro household, o en ninguno. Comprueba el ámbito antes de sospechar del SQL |
-| Un `upsert` falla por clave primaria duplicada | Estás intentando tocar una fila de otro household: el guardia no la encuentra, intenta crearla y choca con el PK. Es la barrera funcionando |
-| El alta de usuario agota el timeout de la transacción | Demasiadas idas y vueltas secuenciales. Usa `createMany` en lote, no `find`+`save` por fila |
+| Síntoma                                                                            | Causa probable                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Los números no cuadran con el Excel                                                | Revisa primero D3 (ahorro no es gasto) y D4 (multimoneda) antes de buscar un bug                                                                                                                                              |
+| `SUM` de un reporte da raro con varias monedas                                     | Estás sumando `amount` en vez de `baseAmount` (RN-36)                                                                                                                                                                         |
+| Un gasto aparece en la quincena equivocada                                         | Zona horaria: se usó `new Date()` del cliente en vez del `Clock` del servidor con la tz del household                                                                                                                         |
+| Un gasto "se movió al día anterior"                                                | Se guardó como `timestamptz` en vez de `@db.Date`                                                                                                                                                                             |
+| Fijo mensual con `dueDay=31` explota en febrero                                    | Falta el `min(dueDay, díaFinQuincena)` de RN-21                                                                                                                                                                               |
+| `0.30000000000000004` en un total                                                  | Alguien usó `number` en vez de `Decimal`                                                                                                                                                                                      |
+| "Too many connections" en Postgres                                                 | Falta `pgbouncer=true&connection_limit=1`, o `PrismaService` no es singleton global                                                                                                                                           |
+| `P1001 Can't reach database server`                                                | Estás usando la conexión directa `db.<ref>.supabase.co`: solo tiene registro AAAA (IPv6) y el plan free no da IPv4. Usa el pooler `aws-0-us-east-2.pooler.supabase.com`, con usuario `postgres.<project-ref>`                 |
+| `P2022 column does not exist`                                                      | Cambiaste un `@map`/`@@map` y no corriste `prisma generate`: el cliente cacheado apunta a los nombres viejos                                                                                                                  |
+| Una contraseña con `+`, `#` o `@` rompe la conexión                                | Hay que codificarla en la URL (`%2B`, `%23`, `%40`); un `#` sin codificar trunca la cadena entera                                                                                                                             |
+| Timeout de 10 s en un reporte                                                      | Se están trayendo filas a memoria para sumarlas en JS. Agrega en SQL                                                                                                                                                          |
+| Usuario nuevo inundado de alertas de "olvidaste pagar"                             | No se está respetando `controlStartDate` (RN-35)                                                                                                                                                                              |
+| La app cayó de un día para otro sin cambios                                        | Supabase free se pausó por 7 días de inactividad → cron diario                                                                                                                                                                |
+| `prisma migrate` falla pero la app conecta bien                                    | Migraciones necesitan `DIRECT_URL` (`:5432`), no el pooler                                                                                                                                                                    |
+| Tras un `pnpm install`, el typecheck falla con `Untyped function calls…` en Prisma | El install borra el cliente generado. Lo arregla el `postinstall: prisma generate`; si no, córrelo a mano                                                                                                                     |
+| El lint pasa en verde pero la arquitectura se degrada                              | Comprueba que `eslint-plugin-boundaries` es **v5+** y que está `eslint-import-resolver-typescript`: sin el resolver no sigue los imports sin extensión y aprueba cualquier dependencia                                        |
+| `Parsing error: "parserOptions.project" has been provided`                         | Un archivo no está cubierto por ningún tsconfig de la lista. Ojo: `tsconfig.build.json` excluye los `*.spec.ts` a propósito                                                                                                   |
+| Un fijo BIMESTRAL infla los fijos presupuestados                                   | Falta `occursInMonth`: sin cadencia se cuenta los 12 meses (RN-07)                                                                                                                                                            |
+| `MissingTenantError` en una petición                                               | Falta abrir el ámbito: `TenantContext.runWith({ householdId, userId }, …)`. Es el comportamiento correcto, no un bug de la extensión                                                                                          |
+| Una consulta devuelve 0 filas y los datos "están ahí"                              | Estás en otro household, o en ninguno. Comprueba el ámbito antes de sospechar del SQL                                                                                                                                         |
+| Un `upsert` falla por clave primaria duplicada                                     | Estás intentando tocar una fila de otro household: el guardia no la encuentra, intenta crearla y choca con el PK. Es la barrera funcionando                                                                                   |
+| El alta de usuario agota el timeout de la transacción                              | Demasiadas idas y vueltas secuenciales. Usa `createMany` en lote, no `find`+`save` por fila                                                                                                                                   |
+| Una ruta `/algo/me` exige permisos de ADMIN                                        | Hay un `/algo/:id` declarado **antes**. Nest resuelve por orden de declaración y `me` casa como un id. Las rutas literales van primero                                                                                        |
+| Los e2e fallan solo bajo vitest, pero el build funciona                            | esbuild no implementa `emitDecoratorMetadata`: Nest se queda sin `design:paramtypes` y la inyección por constructor revienta. Por eso `vitest.e2e.config.ts` usa SWC — y por eso la config unitaria **excluye** `test/e2e/**` |
+| `pnpm db:rls` / `db:verify` mueren con "Expected property name"                    | El shell de Windows se come las comillas del JSON en `--compiler-options`. Van en `tsconfig.scripts.json`, no en la línea de comandos                                                                                         |
+| Las políticas RLS desaparecieron                                                   | Un `migrate reset` las tumba: se aplican con un script (`pnpm db:rls`), no con una migración. El seed también se pierde → `pnpm db:seed`                                                                                      |
+| Campos de formulario en gris oscuro sobre tarjeta blanca                           | `color-scheme: light dark` con una paleta escrita solo en claro: el navegador en modo oscuro pinta los controles con su tema. Declara un solo esquema hasta que existan las dos paletas                                       |
 
 ---
 
@@ -425,6 +470,12 @@ SICFI/
 ├── apps/
 │   ├── api/                         NestJS + Prisma
 │   └── web/                         Next.js + Tailwind
+│       ├── src/middleware.ts        refresco de sesión + protección de rutas
+│       ├── src/lib/supabase/        3 clientes: browser · server · middleware
+│       └── src/app/
+│           ├── (auth)/              login · registro · recuperar · restablecer
+│           ├── (app)/               zona privada (exige sesión)
+│           └── auth/callback/       canje del código de los enlaces por correo
 └── packages/
     ├── contracts/                   Zod compartido
     ├── config-eslint/

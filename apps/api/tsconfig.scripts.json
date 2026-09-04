@@ -3,7 +3,16 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    /*
+     * Los scripts de `prisma/` los ejecuta ts-node, que necesita CommonJS.
+     * Estaba puesto en la línea de comandos como `--compiler-options
+     * {"module":"CommonJS"}` y en PowerShell/Windows el shell se comía las
+     * comillas: ts-node recibía `{module:CommonJS}`, que no es JSON válido, y
+     * `pnpm db:rls` y `pnpm db:verify` fallaban antes de arrancar. Aquí no hay
+     * comillas que escapar.
+     */
+    "module": "CommonJS"
   },
   "include": ["prisma/**/*.ts", "prisma.config.ts"]
 }

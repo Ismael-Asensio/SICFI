@@ -39,5 +39,14 @@
     "@commitlint/config-conventional": "^19.6.0",
     "turbo": "^2.4.0",
     "eslint-import-resolver-typescript": "^3.7.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
   }
 }

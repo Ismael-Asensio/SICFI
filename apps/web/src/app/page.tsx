@@ -1,10 +1,10 @@
+import { redirect } from 'next/navigation';
+
+/**
+ * La raíz no tiene contenido propio: reparte según haya sesión o no. El
+ * middleware ya habría mandado a `/login` a quien no la tenga, así que en la
+ * práctica esto lleva al panel.
+ */
 export default function Home() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">SICFI</h1>
-        <p className="text-gray-600">Sistema de Control Financiero Individual</p>
-      </div>
-    </main>
-  );
+  redirect('/panel');
 }

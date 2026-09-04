@@ -5,5 +5,12 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  /*
+   * Incluye también los `vitest*.config.ts`. No es cosmético: `pnpm lint` corre
+   * `eslint src` y nunca los mira, pero lint-staged pasa las rutas de los
+   * archivos realmente tocados, y un archivo que no cae en ningún tsconfig de
+   * `parserOptions.project` hace fallar el parser de typescript-eslint. Es la
+   * trampa de CLAUDE.md §11: el hook de pre-commit rompía por esto.
+   */
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest*.config.ts"]
 }

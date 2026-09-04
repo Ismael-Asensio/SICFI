@@ -4,11 +4,16 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.spec.ts', 'prisma/**/*.spec.ts', 'test/**/*.spec.ts'],
-    // Los de integración tienen su propia config (vitest.integration.config.ts):
-    // necesitan .env cargado y tocan Postgres real. Sin esta exclusión, el
-    // glob de arriba también los recogería y fallarían aquí por falta de
-    // DATABASE_URL — o peor, correrían sin que nadie lo pidiera explícitamente.
-    exclude: ['node_modules/**', 'test/integration/**'],
+    // Integración y e2e tienen su propia config: necesitan .env cargado y tocan
+    // Postgres real. Sin esta exclusión, el glob de arriba también los recogería
+    // y fallarían aquí por falta de DATABASE_URL — o peor, correrían sin que
+    // nadie lo pidiera explícitamente.
+    //
+    // Los e2e además NO pueden correr con esta config aunque hubiera base: el
+    // transpilador por defecto (esbuild) no implementa `emitDecoratorMetadata`,
+    // así que Nest se queda sin `design:paramtypes` y la inyección por
+    // constructor revienta. `vitest.e2e.config.ts` usa SWC justo por eso.
+    exclude: ['node_modules/**', 'test/integration/**', 'test/e2e/**'],
     globals: false,
     coverage: {
       provider: 'v8',

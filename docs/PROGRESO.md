@@ -3,33 +3,33 @@
 > **Léeme al empezar cualquier sesión.** Dice en qué fase estamos, con qué modelo trabajar
 > y qué quedó pendiente. Se actualiza al cerrar cada fase, junto con el commit.
 
-**Última actualización:** 2026-09-02 · Fase 5 cerrada
-**Fase actual:** 6 — **Auth, households y roles (crítica)**
-**Modelo requerido para la fase actual:** `Opus 5`
+**Última actualización:** 2026-09-04 · Fase 6 cerrada
+**Fase actual:** 7 — **API HTTP**
+**Modelo requerido para la fase actual:** `Sonnet 5` (DTOs con `Haiku 4.5`)
 
 ---
 
 ## Tablero de fases
 
-| Fase | Nombre | Modelo | Horas | Estado |
-|:----:|--------|--------|:-----:|--------|
-| 0 | Preparación y decisiones | Opus 5 | 2 | ✅ **Completada** |
-| 1 | Andamiaje del monorepo | Haiku 4.5 | 3 | ✅ **Completada** |
-| 2 | Modelo de datos, migraciones, seeds | Opus 5 | 6 | ✅ **Completada** |
-| 3 | **Núcleo de dominio** (crítica) | Opus 5 | 12 | ✅ **Completada** |
-| 4 | Capa de aplicación (casos de uso) | Sonnet 5 | 7 | ✅ **Completada** |
-| 5 | Infraestructura de persistencia | Sonnet 5 + Opus 5 | 7 | ✅ **Completada** |
-| 6 | **Auth, households y roles** (crítica) | **Opus 5** | 8 | ⬜ Siguiente |
-| 7 | API HTTP | Sonnet 5 (+Haiku para DTOs) | 7 | ⬜ |
-| 8 | **Analítica y read models** (crítica) | **Opus 5** | 10 | ⬜ |
-| 9 | Design system y shell responsive | Sonnet 5 | 6 | ⬜ |
-| 10 | Pantallas por módulo | Sonnet 5 (+Haiku) | 17 | ⬜ |
-| 11 | Testing integral | Sonnet 5 (+Opus casos borde) | 6 | ⬜ |
-| 12 | Importador del Excel | Sonnet 5 | 4 | ⬜ |
-| 13 | CI/CD y despliegue | Sonnet 5 | 3 | ⬜ |
-| 14 | Hardening y observabilidad | Opus 5 | 4 | ⬜ |
-| 15 | Documentación y cierre | Haiku 4.5 | 2 | ⬜ |
-| | **Total** | | **104 h** | 39 % |
+| Fase | Nombre                                 | Modelo                       |   Horas   | Estado            |
+| :--: | -------------------------------------- | ---------------------------- | :-------: | ----------------- |
+|  0   | Preparación y decisiones               | Opus 5                       |     2     | ✅ **Completada** |
+|  1   | Andamiaje del monorepo                 | Haiku 4.5                    |     3     | ✅ **Completada** |
+|  2   | Modelo de datos, migraciones, seeds    | Opus 5                       |     6     | ✅ **Completada** |
+|  3   | **Núcleo de dominio** (crítica)        | Opus 5                       |    12     | ✅ **Completada** |
+|  4   | Capa de aplicación (casos de uso)      | Sonnet 5                     |     7     | ✅ **Completada** |
+|  5   | Infraestructura de persistencia        | Sonnet 5 + Opus 5            |     7     | ✅ **Completada** |
+|  6   | **Auth, households y roles** (crítica) | **Opus 5**                   |     8     | ✅ **Completada** |
+|  7   | API HTTP                               | Sonnet 5 (+Haiku para DTOs)  |     7     | ⬜ Siguiente      |
+|  8   | **Analítica y read models** (crítica)  | **Opus 5**                   |    10     | ⬜                |
+|  9   | Design system y shell responsive       | Sonnet 5                     |     6     | ⬜                |
+|  10  | Pantallas por módulo                   | Sonnet 5 (+Haiku)            |    17     | ⬜                |
+|  11  | Testing integral                       | Sonnet 5 (+Opus casos borde) |     6     | ⬜                |
+|  12  | Importador del Excel                   | Sonnet 5                     |     4     | ⬜                |
+|  13  | CI/CD y despliegue                     | Sonnet 5                     |     3     | ⬜                |
+|  14  | Hardening y observabilidad             | Opus 5                       |     4     | ⬜                |
+|  15  | Documentación y cierre                 | Haiku 4.5                    |     2     | ⬜                |
+|      | **Total**                              |                              | **104 h** | 47 %              |
 
 > El total subió de 85 h a 104 h por las decisiones D2 (households), D3 (fondos de ahorro)
 > y D4 (multimoneda), tomadas en la Fase 0.
@@ -44,6 +44,7 @@ modelo y pausar** → el usuario cambia de modelo → continuar.
 **Cerrada:** 2026-08-31 · Modelo: Opus 5
 
 ### Hecho
+
 - [x] Repositorio git inicializado en `main` (usuario: Ismael Asensio · ismaasenacedo@gmail.com)
 - [x] Entorno verificado: Node v24.10.0 · npm 11.6.1 · **pnpm 11.25.0 instalado** · git 2.43.0
 - [x] Las 5 decisiones abiertas del plan, resueltas → §2 de `CLAUDE.md`
@@ -54,20 +55,25 @@ modelo y pausar** → el usuario cambia de modelo → continuar.
 - [x] `docs/PROGRESO.md` (este archivo)
 
 ### Decisiones tomadas
-| # | Decisión | Elección |
-|---|----------|----------|
-| D1 | Frontend | Next.js 15 App Router |
-| D2 | Tenant | `householdId` — presupuesto compartido desde el MVP |
-| D3 | Ahorro | Traslado a fondo, **no es gasto** |
-| D4 | Moneda | Multimoneda desde el inicio |
-| D5 | Multi-año | Esquema multi-año, UI de un año |
+
+| #   | Decisión  | Elección                                            |
+| --- | --------- | --------------------------------------------------- |
+| D1  | Frontend  | Next.js 15 App Router                               |
+| D2  | Tenant    | `householdId` — presupuesto compartido desde el MVP |
+| D3  | Ahorro    | Traslado a fondo, **no es gasto**                   |
+| D4  | Moneda    | Multimoneda desde el inicio                         |
+| D5  | Multi-año | Esquema multi-año, UI de un año                     |
 
 ### Cuentas externas
+
 Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 
 - [x] **Supabase** → proyectos `sicfi-dev` y `sicfi-prod` creados (2026-08-31)
 - [x] **Cadenas de conexión** → resueltas vía pooler `us-east-2` (2026-08-31)
-- [ ] **Claves de Supabase Auth** → `SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Fase 6)
+- [x] **Claves de Supabase Auth** → URL, clave publishable y JWKS de dev y prod (2026-09-03).
+      La clave _publishable_ sustituye a la antigua `anon`. **La `secret` (service_role) no se
+      guarda en ningún archivo del repo:** salta RLS por completo y no hace falta — el backend
+      verifica los JWT contra el JWKS público.
 - [x] **GitHub** → `origin` en `github.com/Ismael-Asensio/SICFI`, historia subida (2026-08-31)
 - [ ] **Vercel** → cuenta creada (no hace falta configurar proyectos hasta la Fase 13)
 
@@ -80,6 +86,7 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 **Cerrada:** 2026-08-31 · Modelo: Haiku 4.5 · Commit: `aa6c843`
 
 ### Entregables
+
 - [x] `pnpm-workspace.yaml` + `turbo.json` + `package.json` raíz con todos los scripts
 - [x] `apps/api` — NestJS 11, `tsconfig` con `strict` + `noUncheckedIndexedAccess` + decoradores
 - [x] `apps/web` — Next.js 15 (App Router) + Tailwind v3 + Tailwind styling
@@ -90,9 +97,11 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 - [x] La home de Next carga con Tailwind styling
 
 ### Definición de terminado ✅
+
 `pnpm build && pnpm lint && pnpm typecheck` pasan en verde.
 
 ### Notas de ejecución
+
 - ESLint 9 requiere `eslint.config.js` (flat config) en lugar de `.eslintrc.js`
 - Tailwind v4 tuvo problemas de compatibilidad en este Windows; se usó v3 (estable)
 - Husky hooks necesitan actualización para v10+; por ahora están sin shebang
@@ -106,6 +115,7 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 **Cerrada:** 2026-08-31 · Modelo: Opus 5 · Commits: `4ab6a18`, `5a5fc85`
 
 ### Hecho
+
 - [x] `schema.prisma` completo — 14 tablas, 8 enums, 34 índices, todos por `householdId`
 - [x] Migración `20260831000000_init` generada offline con `prisma migrate diff`
 - [x] Migración `20260831000100_check_constraints` — invariantes en la base (ver abajo)
@@ -119,6 +129,7 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 - [x] `pnpm lint && pnpm typecheck && pnpm build && pnpm test` en verde
 
 ### Aplicado contra `sicfi-dev` ✅
+
 - [x] `prisma migrate deploy` — las 2 migraciones aplicadas
 - [x] `pnpm db:seed` — y verificado **idempotente** (segunda corrida sin duplicados)
 - [x] `pnpm db:rls` — 23 sentencias, las 14 tablas con RLS activo
@@ -126,20 +137,22 @@ Estas cuentas hay que crearlas a mano; no se pueden automatizar desde aquí:
 - [x] `GET /api/v1/health` → `{"status":"ok","database":"up"}`
 
 ### Definición de terminado ✅
+
 `migrate deploy` + `db seed` corren limpios · `lint`, `typecheck`, `build`, `test` en verde.
 
 **Los agregados cuadran con el Excel (§1.5):** C$ 12 100/mes · C$ 145 200/año ·
 C$ 204 000 de ingreso anual · **71,2 % comprometido**.
 
 ### Decisiones tomadas en esta fase
-| Decisión | Motivo |
-|----------|--------|
-| **Columnas en `snake_case`** vía `@map` | `analytics` (Fase 8) escribe SQL agregado crudo y las políticas RLS son snake_case. Sin esto habría que citar `"asiComillada"` en todo SQL posterior. |
-| **CHECK constraints en la base** | Prisma no los modela y por tanto no los borra en diffs posteriores. Solo para invariantes sin excepción legítima. |
-| **RN-26 se queda en el dominio** | El importador de la Fase 12 puede encontrar filas de Excel con un FIJO sin fijo correspondiente; un CHECK daría un 500 en vez de un error explicativo. |
-| **Jest → Vitest** | `CLAUDE.md` §3 ya fijaba Vitest; la Fase 1 había dejado Jest por descuido. |
-| `businessDate` ancla a **12:00 UTC** | Deja 12 h de margen a cada lado: ningún desfase de zona puede mover un `@db.Date` al día anterior. |
-| Se conserva `FORCE ROW LEVEL SECURITY` | Hoy es un no-op (ver abajo), pero si algún día se revoca `BYPASSRLS` a `postgres`, la propiedad de la tabla no debe bastar para saltarse las políticas. |
+
+| Decisión                                | Motivo                                                                                                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Columnas en `snake_case`** vía `@map` | `analytics` (Fase 8) escribe SQL agregado crudo y las políticas RLS son snake_case. Sin esto habría que citar `"asiComillada"` en todo SQL posterior.   |
+| **CHECK constraints en la base**        | Prisma no los modela y por tanto no los borra en diffs posteriores. Solo para invariantes sin excepción legítima.                                       |
+| **RN-26 se queda en el dominio**        | El importador de la Fase 12 puede encontrar filas de Excel con un FIJO sin fijo correspondiente; un CHECK daría un 500 en vez de un error explicativo.  |
+| **Jest → Vitest**                       | `CLAUDE.md` §3 ya fijaba Vitest; la Fase 1 había dejado Jest por descuido.                                                                              |
+| `businessDate` ancla a **12:00 UTC**    | Deja 12 h de margen a cada lado: ningún desfase de zona puede mover un `@db.Date` al día anterior.                                                      |
+| Se conserva `FORCE ROW LEVEL SECURITY`  | Hoy es un no-op (ver abajo), pero si algún día se revoca `BYPASSRLS` a `postgres`, la propiedad de la tabla no debe bastar para saltarse las políticas. |
 
 ### 🔒 Hallazgo de seguridad verificado en la base real
 
@@ -156,12 +169,13 @@ Esto confirma empíricamente la advertencia de `CLAUDE.md` §7: la `tenantExtens
 acceso vía cliente Supabase / PostgREST / SQL manual.
 
 ### Notas para quien siga
+
 - **Infra:** Supabase `sicfi-dev` (ref `zdissagxljlwhybswahw`) y `sicfi-prod`
   (ref `gyyokngqxpjriqypvsom`), región **us-east-2**. GitHub: `Ismael-Asensio/SICFI`.
 - `apps/api/.env` tiene las credenciales reales de dev y **está en `.gitignore`**.
 - ⚠️ **Hay que usar el pooler, no la conexión directa.** `db.<ref>.supabase.co` solo
   publica registro AAAA (IPv6) y el plan free no incluye IPv4 → `P1001 Can't reach
-  database server`. El pooler sí resuelve por IPv4:
+database server`. El pooler sí resuelve por IPv4:
   - runtime → `aws-0-us-east-2.pooler.supabase.com:6543` + `?pgbouncer=true&connection_limit=1`
   - migraciones → `aws-0-us-east-2.pooler.supabase.com:5432` (modo session; el modo
     transaction no soporta las sentencias preparadas del DDL)
@@ -184,6 +198,7 @@ acceso vía cliente Supabase / PostgREST / SQL manual.
 **Cerrada:** 2026-09-01 · Modelo: Opus 5 · Commits: `844748c`, `38a92a4`
 
 ### Entregables
+
 - [x] Kernel: `Result`, `DomainError`, `Entity`, `AggregateRoot`, `ValueObject`, `DomainEvent`, puerto `Clock`
 - [x] VOs: `Money`, `Currency`, `ExchangeRate`, `Percentage`, `CalendarDate`, `DueDay`
 - [x] `CurrencyConverter` + puerto `ExchangeRateProvider` (RN-36..RN-38)
@@ -197,31 +212,34 @@ acceso vía cliente Supabase / PostgREST / SQL manual.
 - [x] Cero dependencias de `@prisma/client` o `@nestjs/*` dentro de `domain/`
 
 ### Casos borde del plan, todos con test explícito
-| Caso | Dónde |
-|------|-------|
-| `dueDay = 31` en febrero (28 y 29) | `recurring-expense.entity.spec.ts` |
-| Movimiento del 31-dic y del 1-ene | `ledger.spec.ts` |
-| `disponible = 0` con gastos | `period-calculator.service.spec.ts` |
-| Fijo de baja a mitad de año | `recurring-expense.entity.spec.ts` |
-| `controlStartDate` a mitad de año | `alert-engine.service.spec.ts` |
-| `0,1 + 0,2` sin arrastre de float | `money.vo.spec.ts` |
-| Sumar C$ con US$ → lanza | `money.vo.spec.ts` |
-| US$ sin tasa → usa la anterior; sin ninguna → rechazo | `currency-converter.service.spec.ts` |
-| `RETIRO_AHORRO` > saldo → rechazo | `ledger.spec.ts` |
-| Ahorrar 1 500 y retirar 1 400 = 100 | `ledger.spec.ts`, `alert-engine.service.spec.ts` |
-| Apartar ahorro NO sube el %ejecutado ni dispara A03 | `period-calculator.service.spec.ts` |
-| Último OWNER intentando salir → rechazo | `household-policy.spec.ts` |
+
+| Caso                                                  | Dónde                                            |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| `dueDay = 31` en febrero (28 y 29)                    | `recurring-expense.entity.spec.ts`               |
+| Movimiento del 31-dic y del 1-ene                     | `ledger.spec.ts`                                 |
+| `disponible = 0` con gastos                           | `period-calculator.service.spec.ts`              |
+| Fijo de baja a mitad de año                           | `recurring-expense.entity.spec.ts`               |
+| `controlStartDate` a mitad de año                     | `alert-engine.service.spec.ts`                   |
+| `0,1 + 0,2` sin arrastre de float                     | `money.vo.spec.ts`                               |
+| Sumar C$ con US$ → lanza                              | `money.vo.spec.ts`                               |
+| US$ sin tasa → usa la anterior; sin ninguna → rechazo | `currency-converter.service.spec.ts`             |
+| `RETIRO_AHORRO` > saldo → rechazo                     | `ledger.spec.ts`                                 |
+| Ahorrar 1 500 y retirar 1 400 = 100                   | `ledger.spec.ts`, `alert-engine.service.spec.ts` |
+| Apartar ahorro NO sube el %ejecutado ni dispara A03   | `period-calculator.service.spec.ts`              |
+| Último OWNER intentando salir → rechazo               | `household-policy.spec.ts`                       |
 
 ### Decisiones tomadas en esta fase
-| Decisión | Motivo |
-|----------|--------|
+
+| Decisión                                              | Motivo                                                                                                                                                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **`CalendarDate`**, no `Date`, para fechas de negocio | Un `Date` es un instante; el 5 de enero no lo es. La única forma de obtener un `CalendarDate` desde un instante **exige** la zona horaria, así que los bugs P4 y "se movió al día anterior" dejan de ser representables. |
-| `Money.plus` **lanza** al mezclar monedas | No es error del usuario sino del programador: nadie pide "suma estos dos importes", lo decide el código. Es una aserción, no control de flujo. `tryPlus` cubre los pocos sitios donde la moneda viene de fuera. |
-| Kernel compartido en `shared/domain` | `Money` y `CalendarDate` los usan todos los contextos. Duplicarlos por contexto sería peor que un shared kernel explícito. |
-| Cascadas como listas de reglas, no escaleras de `if` | En RN-13..RN-17 y RN-22 **el orden ES la regla de negocio**; como dato es inspeccionable y comprobable. |
-| Cadencia mensual en `RecurringExpense` | Sin ella un fijo BIMESTRAL se contaría los 12 meses e inflaría RN-07. El Excel solo tenía mensual y quincenal (P5). |
+| `Money.plus` **lanza** al mezclar monedas             | No es error del usuario sino del programador: nadie pide "suma estos dos importes", lo decide el código. Es una aserción, no control de flujo. `tryPlus` cubre los pocos sitios donde la moneda viene de fuera.          |
+| Kernel compartido en `shared/domain`                  | `Money` y `CalendarDate` los usan todos los contextos. Duplicarlos por contexto sería peor que un shared kernel explícito.                                                                                               |
+| Cascadas como listas de reglas, no escaleras de `if`  | En RN-13..RN-17 y RN-22 **el orden ES la regla de negocio**; como dato es inspeccionable y comprobable.                                                                                                                  |
+| Cadencia mensual en `RecurringExpense`                | Sin ella un fijo BIMESTRAL se contaría los 12 meses e inflaría RN-07. El Excel solo tenía mensual y quincenal (P5).                                                                                                      |
 
 ### ⚠️ Hallazgo: la regla de dependencia NO se estaba aplicando
+
 `eslint-plugin-boundaries` estaba fijado en **v1.1.1**, una versión que ni siquiera
 expone la regla `element-types`. Desde la Fase 1 el lint pasaba en verde sin
 comprobar nada. Corregido a v5 y **verificado con violaciones reales**: un import
@@ -230,6 +248,7 @@ Hizo falta además `eslint-import-resolver-typescript`: sin él, boundaries no s
 seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependencia.
 
 ### Notas para quien siga
+
 - `prisma/seed-calendar.ts` **ya no existe**: su lógica está en `PeriodFactory` y
   `RecurringExpense`, y el seed las importa desde el dominio.
 - `SystemClockAdapter` es el **único** sitio que llama a `new Date()`. En los
@@ -245,6 +264,7 @@ seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependen
 **Cerrada:** 2026-09-01 · Modelo: Sonnet 5 · Commit: `fcbba35`
 
 ### Entregables
+
 - [x] Puertos de repositorio de los 5 contextos de escritura (iam, catalog, budget, recurring, ledger)
 - [x] CRUD de `catalog` (Category, PaymentMethod, SavingsFund) · `budget` (BudgetSettings, Period)
       · `recurring` (RecurringExpense) · `ledger` (Transaction)
@@ -255,28 +275,32 @@ seguir un import sin extensión hasta su `.ts` y da por buena cualquier dependen
 - [x] Cero imports de `@prisma/client` o `@nestjs/*` en `domain/` **ni en `application/`**
 
 ### Definición de terminado ✅
+
 Todos los casos de uso probados con dobles; ninguno importa Prisma.
 
 ### Decisiones tomadas en esta fase
-| Decisión | Motivo |
-|----------|--------|
-| **`SavingsFund` movido de `ledger` a `catalog`** | CLAUDE.md §4 asigna "fondos de ahorro" a `catalog`; en la Fase 3 quedó mal ubicado en `ledger`. Corregido antes de construir CRUD encima, cuando mover 2 archivos costaba poco. |
-| **`IdGenerator`, puerto nuevo** | Un caso de uso construye la entidad completa (con id) antes de llamar a `repository.save()`; depender de `cuid()` habría acoplado la aplicación a una librería de infraestructura. Adaptador real sobre `crypto.randomUUID()` — el formato del id no importa mientras sea único. |
-| **`ConflictError`, tipo de error nuevo** | Un nombre de categoría repetido no es un `ValidationError` (el dato en sí es válido) ni una `BusinessRuleError` numerada (no hay un RN para esto) — es la unicidad que ya expresa `@@unique` en el esquema. |
-| **`code` de un fijo se genera al crear, nunca lo envía el cliente** | P11: el id no puede depender del orden de creación. Se calcula como `max(código existente) + 1`, no por conteo, para tolerar borrados. |
-| **`RecurringExpenseRepository.delete` vs `save({isActive:false})`** | RN-20: con movimientos asociados, se desactiva; sin ellos, se borra físicamente. La decisión la toma el caso de uso, consultando `TransactionRepository.existsForRecurringExpense`. |
-| **`analytics` no se anticipa** | "Snapshot de quincena" y "conciliación de fijos" usan servicios de dominio ya construidos en la Fase 3, pero su *caso de uso* (wiring con repositorios) se deja para la Fase 8: son proyecciones de lectura, no CRUD. |
-| **`*.repository.ts` excluidos de la cobertura** | Son puertos —interfaz + `Symbol` de inyección—, igual que los `*.port.ts` ya excluidos. El token solo se ejecuta al cablear el DI real (Fase 5/6). |
+
+| Decisión                                                            | Motivo                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`SavingsFund` movido de `ledger` a `catalog`**                    | CLAUDE.md §4 asigna "fondos de ahorro" a `catalog`; en la Fase 3 quedó mal ubicado en `ledger`. Corregido antes de construir CRUD encima, cuando mover 2 archivos costaba poco.                                                                                                  |
+| **`IdGenerator`, puerto nuevo**                                     | Un caso de uso construye la entidad completa (con id) antes de llamar a `repository.save()`; depender de `cuid()` habría acoplado la aplicación a una librería de infraestructura. Adaptador real sobre `crypto.randomUUID()` — el formato del id no importa mientras sea único. |
+| **`ConflictError`, tipo de error nuevo**                            | Un nombre de categoría repetido no es un `ValidationError` (el dato en sí es válido) ni una `BusinessRuleError` numerada (no hay un RN para esto) — es la unicidad que ya expresa `@@unique` en el esquema.                                                                      |
+| **`code` de un fijo se genera al crear, nunca lo envía el cliente** | P11: el id no puede depender del orden de creación. Se calcula como `max(código existente) + 1`, no por conteo, para tolerar borrados.                                                                                                                                           |
+| **`RecurringExpenseRepository.delete` vs `save({isActive:false})`** | RN-20: con movimientos asociados, se desactiva; sin ellos, se borra físicamente. La decisión la toma el caso de uso, consultando `TransactionRepository.existsForRecurringExpense`.                                                                                              |
+| **`analytics` no se anticipa**                                      | "Snapshot de quincena" y "conciliación de fijos" usan servicios de dominio ya construidos en la Fase 3, pero su _caso de uso_ (wiring con repositorios) se deja para la Fase 8: son proyecciones de lectura, no CRUD.                                                            |
+| **`*.repository.ts` excluidos de la cobertura**                     | Son puertos —interfaz + `Symbol` de inyección—, igual que los `*.port.ts` ya excluidos. El token solo se ejecuta al cablear el DI real (Fase 5/6).                                                                                                                               |
 
 ### 🐛 Caso borde real encontrado y corregido: editar un retiro de ahorro
+
 Al construir `UpdateTransactionUseCase`, validar RN-41 contra el saldo actual del fondo compara
-el *movimiento que se está editando* contra un saldo que **ya lo incluye una vez**. Sin corrección,
+el _movimiento que se está editando_ contra un saldo que **ya lo incluye una vez**. Sin corrección,
 subir el importe de un `RETIRO_AHORRO` existente —o simplemente cambiarle la fecha— fallaría
 "por saldo insuficiente" contra su propio retiro anterior. Se corrigió devolviendo el importe
 anterior de la transacción al saldo antes de validar el nuevo. Test explícito en
 `transaction-lifecycle.use-cases.spec.ts`.
 
 ### Notas para quien siga
+
 - `test/doubles/` tiene un archivo por contexto (`catalog.doubles.ts`, `budget.doubles.ts`…) con
   las implementaciones en memoria de cada puerto — reutilízalos en las specs de la Fase 5 hasta
   que existan los repositorios reales de Prisma.
@@ -294,6 +318,7 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 **Cerrada:** 2026-09-02 · Modelo: Sonnet 5 (repos) + Opus 5 (tenant) · Commits: `3a6606f`, `0d8dbf3`
 
 ### Hecho (Sonnet)
+
 - [x] 11 repositorios Prisma + su mapper dedicado, uno por puerto de la Fase 4:
       iam (User, Household, HouseholdMember, Profile) · catalog (Category, PaymentMethod,
       SavingsFund) · budget (BudgetSettings, Period) · recurring (RecurringExpense) · ledger (Transaction)
@@ -306,6 +331,7 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 - [x] `pnpm lint && pnpm typecheck && pnpm build && pnpm test` en verde
 
 ### Hecho (Opus — el aislamiento de tenant)
+
 - [x] `tenantExtension` de Prisma — inyecta `householdId` en toda operación de las 10 tablas
       con discriminante, más `Household` (por su propio `id`) y `ExchangeRate` (caso especial)
 - [x] `TenantContext` como **puerto** en `shared/domain` + adaptador sobre `AsyncLocalStorage`
@@ -313,15 +339,17 @@ anterior de la transacción al saldo antes de validar el nuevo. Test explícito 
 - [x] **33 tests de integración**, 12 de ellos solo de aislamiento
 
 ### Definición de terminado ✅
+
 Tests de integración en verde · **una consulta sin tenant lanza `MissingTenantError`**, con
 comprobación añadida de que además no llegó a escribir nada.
 
 ### 🔒 El modelo de aislamiento, en tres estados
-| Estado | Cómo se entra | Qué hace la extensión |
-|--------|---------------|------------------------|
-| **Con household** | `runWith({ householdId, userId })` | Filtra toda consulta por él |
-| **Sistema** | `runAsSystem()` — **declarado a propósito** | No filtra: alta de usuario, seeds, importadores |
-| **Sin contexto** | nadie lo estableció | **Lanza `MissingTenantError`** |
+
+| Estado            | Cómo se entra                               | Qué hace la extensión                           |
+| ----------------- | ------------------------------------------- | ----------------------------------------------- |
+| **Con household** | `runWith({ householdId, userId })`          | Filtra toda consulta por él                     |
+| **Sistema**       | `runAsSystem()` — **declarado a propósito** | No filtra: alta de usuario, seeds, importadores |
+| **Sin contexto**  | nadie lo estableció                         | **Lanza `MissingTenantError`**                  |
 
 Que "sin contexto" reviente en vez de devolver filas es lo que impide que un endpoint nuevo se
 olvide del tenant y sirva el household de otro. `BootstrapUserUseCase` es **el único** que abre
@@ -330,6 +358,7 @@ Ese tramo dura lo mínimo — en cuanto el household existe, el resto del alta p
 estricto y queda filtrado como cualquier otra operación.
 
 ### 🐛 Fuga real encontrada por el test de aislamiento
+
 Para `Household`, el guardia **sobrescribía** el `id` pedido en lugar de restringirlo: pedir el
 household de otro devolvía **el propio**, en silencio. Es peor que devolver `null` — el llamante
 recibe una fila distinta de la que pidió y no se entera. Corregido acumulando el guardia en
@@ -338,6 +367,7 @@ ninguna. Los modelos con columna `householdId` no tenían el fallo, porque ahí 
 un campo distinto en vez de pisar el que puso el llamante.
 
 ### ⚡ El problema de rendimiento del alta, ya resuelto (no solo anotado)
+
 La extensión empujó `BootstrapUserUseCase` por encima del timeout de 30 s y lo hizo fallar. La
 causa no era el timeout sino **~96 idas y vueltas secuenciales**. Sembrar el catálogo pasó a dos
 viajes por tabla (leer lo que hay → insertar lo que falta con `createMany`) y las 24 quincenas a
@@ -350,18 +380,20 @@ idempotencia. Los puertos de `Category` y `PaymentMethod` ganaron `createMany`.
 > chocar con el límite de 10 s de Vercel era menor de lo que sugería la medición local.
 
 ### Decisiones tomadas en la parte de Sonnet
-| Decisión | Motivo |
-|----------|--------|
-| **Todo Decimal se serializa a `string`** en ambas direcciones del mapper | El `decimal.js` interno de Prisma y el clon propio de `Money`/`Percentage` son instancias de librería distintas; pasar un `Decimal` de una a la otra directamente arriesga un `instanceof` que falla en silencio. `.toString()`/`.toFixed()` lo evita del todo. |
-| `exchangeRate` **nunca** pasa por `Money` al leerlo | `Money.of` redondea a 2 decimales (`MINOR_UNITS`); la tasa necesita los 8 de `Decimal(18,8)`. Se usa `decimal.js` directo. Bug real que se corrigió antes de commitear, al escribir el primer test de integración multimoneda. |
-| El ALS de `PrismaUnitOfWork` es un mecanismo **separado** del `TenantContext` pendiente | Uno resuelve "¿qué cliente de Prisma uso ahora?" (transacciones), el otro "¿de qué household son estos datos?" (seguridad). Mezclarlos habría sido tocar el tenant bajo otro nombre sin pedir el cambio a Opus. |
-| Timeout de `PrismaUnitOfWork` subido a 30 s | El default de Prisma (5 s) no alcanza para las ~40 sentencias secuenciales de `BootstrapUserUseCase` contra el pooler remoto — verificado con el error real `Transaction not found`, no en teoría. |
-| Sin `Testcontainers`: los tests de integración corren contra `sicfi-dev` | No hay Docker en esta máquina. Es la alternativa que el propio plan preveía. Cada test crea su household aislado (`__integration_test__ …`) y lo borra en `afterAll`; verificado sin residuos tras cada corrida. |
-| `TenantContext` es un **puerto** en `shared/domain`, no una clase de infraestructura | `BootstrapUserUseCase` (capa de aplicación) necesita declarar el ámbito de sistema. Con un puerto, la aplicación no depende de `AsyncLocalStorage`. |
-| `PrismaRepositoryBase` depende de `TenantScopedPrisma`, no de `PrismaService` | Hace **imposible por tipos** construir un repositorio con un cliente sin aislar. Al cambiarlo, el compilador señaló los 20 sitios a migrar: eso es justo lo que se le pide a una barrera de seguridad. |
-| `ExchangeRate` se trata aparte | Su `householdId` es NULLABLE porque las tasas globales (BCN) se comparten (RN-37). Filtrar `householdId = X` a secas habría ocultado justo esas tasas y roto la cascada del `CurrencyConverter`. Se lee "las mías **o** las globales"; se escribe solo en las mías. |
+
+| Decisión                                                                                | Motivo                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Todo Decimal se serializa a `string`** en ambas direcciones del mapper                | El `decimal.js` interno de Prisma y el clon propio de `Money`/`Percentage` son instancias de librería distintas; pasar un `Decimal` de una a la otra directamente arriesga un `instanceof` que falla en silencio. `.toString()`/`.toFixed()` lo evita del todo.     |
+| `exchangeRate` **nunca** pasa por `Money` al leerlo                                     | `Money.of` redondea a 2 decimales (`MINOR_UNITS`); la tasa necesita los 8 de `Decimal(18,8)`. Se usa `decimal.js` directo. Bug real que se corrigió antes de commitear, al escribir el primer test de integración multimoneda.                                      |
+| El ALS de `PrismaUnitOfWork` es un mecanismo **separado** del `TenantContext` pendiente | Uno resuelve "¿qué cliente de Prisma uso ahora?" (transacciones), el otro "¿de qué household son estos datos?" (seguridad). Mezclarlos habría sido tocar el tenant bajo otro nombre sin pedir el cambio a Opus.                                                     |
+| Timeout de `PrismaUnitOfWork` subido a 30 s                                             | El default de Prisma (5 s) no alcanza para las ~40 sentencias secuenciales de `BootstrapUserUseCase` contra el pooler remoto — verificado con el error real `Transaction not found`, no en teoría.                                                                  |
+| Sin `Testcontainers`: los tests de integración corren contra `sicfi-dev`                | No hay Docker en esta máquina. Es la alternativa que el propio plan preveía. Cada test crea su household aislado (`__integration_test__ …`) y lo borra en `afterAll`; verificado sin residuos tras cada corrida.                                                    |
+| `TenantContext` es un **puerto** en `shared/domain`, no una clase de infraestructura    | `BootstrapUserUseCase` (capa de aplicación) necesita declarar el ámbito de sistema. Con un puerto, la aplicación no depende de `AsyncLocalStorage`.                                                                                                                 |
+| `PrismaRepositoryBase` depende de `TenantScopedPrisma`, no de `PrismaService`           | Hace **imposible por tipos** construir un repositorio con un cliente sin aislar. Al cambiarlo, el compilador señaló los 20 sitios a migrar: eso es justo lo que se le pide a una barrera de seguridad.                                                              |
+| `ExchangeRate` se trata aparte                                                          | Su `householdId` es NULLABLE porque las tasas globales (BCN) se comparten (RN-37). Filtrar `householdId = X` a secas habría ocultado justo esas tasas y roto la cascada del `CurrencyConverter`. Se lee "las mías **o** las globales"; se escribe solo en las mías. |
 
 ### 🐛 Bug real encontrado por el primer test de integración (no por inspección)
+
 `BootstrapUserUseCase.findOrCreateHousehold` buscaba con `households.findById(command.userId)`
 pero creaba el household con un id **generado aparte** — nunca iban a coincidir. Cada reintento
 del onboarding creaba un household duplicado, con su propio catálogo completo. El test de
@@ -373,6 +405,7 @@ La aserción débil de Fase 4 también se corrigió (`docs/PROGRESO.md` no repit
 diff de `bootstrap-user.use-case.spec.ts` en el commit `3a6606f`).
 
 ### ⚠️ Hallazgo de rendimiento — vigilar antes de la Fase 13
+
 `BootstrapUserUseCase` tarda **~25 s** contra el pooler remoto de `sicfi-dev` en pruebas reales
 (~40 sentencias secuenciales: 24 quincenas + 24 categorías + 7 métodos + 1 fondo, cada una un
 round-trip a AWS us-east-2). El plan free de Vercel corta una función serverless a los **10 s**.
@@ -382,12 +415,14 @@ la comprobación de existencia fila-a-fila en `seedCatalog` cuando ya se sabe qu
 nuevo. No se tocó en esta fase: es una optimización de una fase futura, no infraestructura básica.
 
 ### ⚠️ Lo que la capa 2 NO cubre (importante para la Fase 8)
+
 - **`$queryRaw` / `$executeRaw` no pasan por la extensión.** El SQL agregado de `analytics`
   tendrá que filtrar por `household_id` **a mano, siempre**. Ahí no hay red de seguridad.
 - **Escrituras anidadas** (`create: { categoria: { create: … } }`): la extensión solo ve la
   operación de primer nivel. Hoy no se usan en ningún sitio.
 
 ### Notas para quien siga
+
 - `PrismaRepositoryBase` da a cada repositorio un getter `client` que ya resuelve la transacción
   activa; los repositorios de la Fase 6/7 deben heredar de ahí, nunca usar `this.prisma` directo.
 - Los tests de integración tienen su propia config: `vitest.integration.config.ts` (carga `.env`,
@@ -409,16 +444,133 @@ nuevo. No se tocó en esta fase: es una optimización de una fase futura, no inf
 
 ---
 
+## Fase 6 — Auth, households y roles ✅
+
+**Cerrada:** 2026-09-04 · Modelo: Opus 5
+
+### Hecho — backend
+
+- [x] `JwtVerifier` sobre `jose` con JWKS remoto cacheado. Algoritmos `ES256` (el que usa
+      Supabase, comprobado contra el endpoint real) y `RS256`
+- [x] `JwtAuthGuard` **global**: verifica el token, resuelve la membresía y abre el ámbito con
+      `TenantContext.runWith(...)`. Todo cerrado salvo `@Public()`
+- [x] `TenantContextMiddleware` — abre el ámbito ALS antes de cualquier guard
+- [x] `RolesGuard` + `@RequireRole()`, delegando en `HouseholdPolicy.isAtLeast` (RN-43)
+- [x] `@Public()`, `@NoTenant()`, `@CurrentUser()`, `@CurrentHousehold()`
+- [x] `domain-error.mapper.ts` — `DomainError` → excepción HTTP, en un solo sitio
+- [x] `HouseholdInvite` (entidad, puerto y repositorio Prisma) + 9 casos de uso de iam:
+      alta, listar households, cambiar de activo, invitar, aceptar, listar miembros,
+      cambiar rol, expulsar, salir y transferir propiedad (RN-44)
+- [x] `AuthController` y `HouseholdsController` · módulos de Nest de `iam`, `catalog`,
+      `budget` y el `SharedKernelModule`
+- [x] Rate limiting con `@nestjs/throttler`: 5/min en el alta, 10/min en invitar y aceptar
+- [x] **29 tests e2e** (aislamiento A/B, permisos por rol, JWKS real, throttling)
+
+### Hecho — frontend
+
+- [x] `@supabase/ssr` con la sesión en **cookies**, no en `localStorage`
+- [x] Tres clientes, uno por runtime: navegador (memoizado), servidor (RSC/actions) y middleware
+- [x] `middleware.ts` — refresca la sesión en cada navegación y protege todo lo que no esté
+      en la lista de rutas públicas
+- [x] Pantallas de login, registro, recuperación y nueva contraseña + `/auth/callback`
+- [x] Zona privada `(app)` con su layout, panel provisional y botón de salir
+- [x] Traducción de los errores de Supabase Auth al español
+- [x] `apps/web/.env.local.example` versionado; `.env.local` ignorado (verificado)
+
+### Definición de terminado ✅
+
+`pnpm lint && pnpm typecheck && pnpm build` en verde ·
+**317 unitarios + 33 integración + 29 e2e = 379 tests** · cobertura de dominio **97,3 %** ·
+la batería A/B pasa · ninguna ruta de datos responde sin JWT válido (comprobado: 401 sin
+cabecera, 401 con token que no verifica, 401 con esquema distinto de Bearer).
+
+### Decisiones tomadas en esta fase
+
+| Decisión                                                                   | Motivo                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tres niveles de acceso, no dos** (`@Public` / `@NoTenant` / nada)        | Hay operaciones legítimas de un usuario autenticado **sin** household todavía (darse de alta) o **por encima** de uno concreto (cambiar de household). Sin el nivel intermedio habría que marcarlas `@Public()` —abiertas a cualquiera— o no serían expresables. El default es el más estricto: olvidarse de decorar deja la ruta cerrada.                                        |
+| **404, no 403, al pedir un recurso de otro household**                     | Un 403 confirma que el recurso existe; repitiendo con distintos ids se enumera lo que tiene el vecino.                                                                                                                                                                                                                                                                            |
+| **`USER_NOT_PROVISIONED` (403) si el JWT es válido pero no hay household** | Es un estado real y distinto de "no autenticado": el frontend tiene que saber que debe llamar a `/auth/bootstrap`, no volver al login.                                                                                                                                                                                                                                            |
+| **El throttler se registra DESPUÉS de `JwtAuthGuard`**                     | Necesita `request.sicfiAuth` para contar por usuario en vez de por IP. Detrás de un proxy, contar por IP castiga a oficinas enteras y no frena a quien rota IPs. El precio —una avalancha de tokens inválidos no pasa por el throttler— se acepta: ese camino es barato (jose cachea el JWKS, no toca la base), mientras que lo caro está detrás de un JWT válido.                |
+| **`@RequireOwnership()` NO se implementa como guard**                      | Decidir si un `MEMBER` puede editar _este_ movimiento exige tener el movimiento delante. Un guard tendría que cargarlo, duplicando la consulta del caso de uso y metiendo acceso a datos en la capa de transporte. La regla ya existe y está probada: `HouseholdPolicy.canModifyTransaction`. Se aplica en el caso de uso, en la Fase 7, cuando existan las rutas de movimientos. |
+| **`getUser()` y nunca `getSession()`** en servidor y middleware            | `getSession()` devuelve lo que venga en la cookie sin comprobar la firma. En el servidor eso es confiar en un dato del cliente.                                                                                                                                                                                                                                                   |
+| **La comprobación de sesión se repite en el layout de `(app)`**            | Redundante a propósito: el middleware no cubre todos los caminos de navegación, y una sola capa decidiendo quién ve qué es justo el error que se paga caro. Ninguna de las dos es la barrera de los _datos_: eso lo decide la API.                                                                                                                                                |
+| **La lista del middleware es de rutas PÚBLICAS**                           | Añadir una ruta y olvidarse de tocar el middleware la deja pidiendo sesión, no abierta. Mismo criterio que el guard global del backend.                                                                                                                                                                                                                                           |
+| **`color-scheme: light` a secas**                                          | La paleta actual está escrita entera en claro. Con `light dark`, el navegador en modo oscuro pintaba los campos de formulario en gris marengo dentro de tarjetas blancas. El modo oscuro real es de la Fase 9.                                                                                                                                                                    |
+| **Tras cambiar la contraseña se cierra la sesión**                         | El enlace de recuperación pudo pasar por el correo de un tercero. Obligar a entrar con la contraseña nueva invalida además la sesión que abrió el propio enlace.                                                                                                                                                                                                                  |
+
+### 🔒 Detalles de seguridad que conviene no perder
+
+- **La `SUPABASE_SECRET_KEY` no está en ningún archivo del repo.** Es equivalente a
+  `service_role`: salta RLS por completo. No hace falta — la verificación de JWT usa el JWKS
+  público. Comprobado además que **ningún secreto entra en el bundle** de Next: lo único que
+  casa con `sb_secret_` en `.next/` es el `startsWith("sb_secret_")` de la propia librería
+  `@supabase/ssr`.
+- **Los destinos de redirección se validan.** `?siguiente=` solo acepta rutas relativas, y
+  rechaza también las _protocol-relative_ (`//otro-sitio.test`), que el navegador trata como
+  absolutas. Sin eso, el login sería un open redirect.
+- **`/recuperar` no revela si el correo existe** ("si existe una cuenta con ese correo…"), y
+  el login no distingue correo inexistente de contraseña incorrecta. Distinguirlos convertiría
+  ambas pantallas en un buscador de usuarios registrados.
+- La verificación de JWT **nunca dice por qué falla**: `JwtVerifier.verify` devuelve `null`
+  ante firma inválida, caducidad, emisor o audiencia equivocados y basura sin estructura.
+
+### 🐛 Encontrado y corregido en esta fase
+
+| Qué                                                        | Detalle                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Orden de rutas en `HouseholdsController`**               | `@Delete('members/:memberId')` estaba declarado **antes** que `members/me`. Nest resuelve por orden, así que `me` casaba como un `memberId` y exigía ADMIN: un MEMBER no podía salirse del household. Reordenado.                                                                                                                                             |
+| **La regla de boundaries era demasiado estricta**          | Prohibía `shared-infra → domain`, que es exactamente lo que hace un adaptador (`JwtAuthGuard` usa `ProfileRepository`; `PrismaExchangeRateAdapter` implementa `ExchangeRateProvider`). Y `app-root → domain`, cuando los tokens de DI viven en `domain`. Ampliada, y **verificada después con violaciones reales** para confirmar que sigue teniendo dientes. |
+| **Los e2e se colaban en la suite unitaria**                | `vitest.config.ts` excluía `test/integration/**` pero no `test/e2e/**`. No es solo lentitud: los e2e **no pueden** correr con esa config, porque esbuild no implementa `emitDecoratorMetadata` y Nest se queda sin `design:paramtypes`.                                                                                                                       |
+| **`pnpm db:rls` y `pnpm db:verify` estaban rotos**         | Pasaban `--compiler-options {"module":"CommonJS"}` en la línea de comandos y el shell de Windows se comía las comillas: ts-node recibía `{module:CommonJS}`, que no es JSON. Movido a `tsconfig.scripts.json`, donde no hay comillas que escapar.                                                                                                             |
+| **RLS estaba desactivado en las 14 tablas de `sicfi-dev`** | Un `migrate reset` en la Fase 5 lo tumbó (las políticas las aplica un script, no una migración) y nadie volvió a correr `db:rls`. Reaplicado: 14/14. Recuerda que **esto no cambia el aislamiento real** —`postgres` tiene `rolbypassrls = true`, así que RLS nunca protegió a Prisma— pero sí el acceso vía cliente Supabase/PostgREST.                      |
+| **La base de dev estaba vacía**                            | Mismo `migrate reset`: se perdieron el seed y los datos. Restaurado con `pnpm db:seed`. **Verificado que no lo causa ningún test**: los conteos son idénticos antes y después de correr integración y e2e completos.                                                                                                                                          |
+
+### Notas para quien siga (Fase 7)
+
+- **La plantilla de un controlador nuevo ya está.** `HouseholdsController` enseña el patrón
+  completo: `@RequireRole` para el permiso, el caso de uso inyectado por token, y
+  `toHttpException(...)` para convertir el `DomainError` del `Result`. Un controlador **no**
+  decide reglas: resuelve el `Result` y traduce.
+- **No hace falta tocar el tenant.** El guard ya abrió `runWith(...)`, así que cualquier
+  repositorio filtra solo. Si una petición nueva revienta con `MissingTenantError`, es que
+  la ruta se marcó `@NoTenant()` sin querer.
+- `HouseholdPolicy.canModifyTransaction` está esperando a que existan `PATCH`/`DELETE` de
+  movimientos: es donde hay que aplicarla (ver la decisión sobre `@RequireOwnership` arriba).
+- El frontend tiene `NEXT_PUBLIC_API_URL` apuntando a `http://localhost:3001/api/v1`, pero
+  **todavía no llama a la API**: falta el cliente con TanStack Query y el envío del token en
+  la cabecera `Authorization`. Es de la Fase 7/9.
+- Los e2e usan un doble de `JwtVerifier` en el que **el token ES la identidad**, con formato
+  `<userId>|<email>`. Todo lo demás del camino (middleware, ALS, extensión de Prisma,
+  repositorios, controladores) es el de producción. La verificación real de firmas tiene su
+  propio spec con un JWKS local: `jwt-verifier.e2e.spec.ts`.
+- `.claude/launch.json` levanta `web` (3000) y `api` (3001) para previsualizar.
+
+### ⚠️ Pendiente del usuario — configuración del panel de Supabase
+
+Nada de esto se puede hacer desde el repo, y **el ciclo completo de registro → confirmación →
+entrar no funcionará hasta que esté**:
+
+1. **Auth → Providers → Email**: activar email/contraseña y decidir si se exige confirmación.
+2. **Auth → URL Configuration**: `Site URL` = `http://localhost:3000` en dev, y añadir
+   `http://localhost:3000/auth/callback` a las _Redirect URLs_ (en producción, el dominio de
+   Vercel). Sin esto, los enlaces del correo rebotan.
+3. **Auth → Emails**: revisar las plantillas de confirmación y de recuperación.
+4. 🔑 **Rotar la clave `secret` de `sicfi-prod`** y las contraseñas de base de datos de ambos
+   proyectos: se pegaron en el chat durante las fases 2 y 6.
+
+---
+
 ## Bitácora de commits por fase
 
-| Fase | Commit | Fecha |
-|:----:|--------|-------|
-| 0 | `chore(fase-0): preparación, decisiones de arquitectura y contexto del proyecto` | 2026-08-31 |
-| 1 | `aa6c843` — `chore(fase-1): andamiaje del monorepo` | 2026-08-31 |
-| 2 | `4ab6a18` — `feat(fase-2): modelo de datos, migraciones y seeds` | 2026-08-31 |
-| 2 | `5a5fc85` — `feat(fase-2): aplicar migraciones, seed y RLS contra Supabase` | 2026-08-31 |
-| 3 | `844748c` — `feat(fase-3): kernel de dominio, Money multimoneda y cálculo de quincena` | 2026-09-01 |
-| 3 | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas` | 2026-09-01 |
-| 4 | `fcbba35` — `feat(fase-4): capa de aplicación — casos de uso CRUD de los 5 contextos` | 2026-09-01 |
-| 5 | `3a6606f` — `feat(fase-5): repositorios Prisma, PrismaUnitOfWork y tests de integración` | 2026-09-01 |
-| 5 | `0d8dbf3` — `feat(fase-5): aislamiento de tenant — tenantExtension y TenantContext` | 2026-09-02 |
+| Fase | Commit                                                                                   | Fecha      |
+| :--: | ---------------------------------------------------------------------------------------- | ---------- |
+|  0   | `chore(fase-0): preparación, decisiones de arquitectura y contexto del proyecto`         | 2026-08-31 |
+|  1   | `aa6c843` — `chore(fase-1): andamiaje del monorepo`                                      | 2026-08-31 |
+|  2   | `4ab6a18` — `feat(fase-2): modelo de datos, migraciones y seeds`                         | 2026-08-31 |
+|  2   | `5a5fc85` — `feat(fase-2): aplicar migraciones, seed y RLS contra Supabase`              | 2026-08-31 |
+|  3   | `844748c` — `feat(fase-3): kernel de dominio, Money multimoneda y cálculo de quincena`   | 2026-09-01 |
+|  3   | `38a92a4` — `feat(fase-3): fondos de ahorro, validador, roles y alertas`                 | 2026-09-01 |
+|  4   | `fcbba35` — `feat(fase-4): capa de aplicación — casos de uso CRUD de los 5 contextos`    | 2026-09-01 |
+|  5   | `3a6606f` — `feat(fase-5): repositorios Prisma, PrismaUnitOfWork y tests de integración` | 2026-09-01 |
+|  5   | `0d8dbf3` — `feat(fase-5): aislamiento de tenant — tenantExtension y TenantContext`      | 2026-09-02 |

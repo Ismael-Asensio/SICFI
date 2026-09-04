@@ -24,11 +24,7 @@ module.exports = [
         // tsconfig.json y también tsconfig.spec/scripts.json — necesarios
         // porque el tsconfig de build excluye los *.spec.ts.
         // Un patrón que no casa con nada se ignora sin error.
-        project: [
-          './tsconfig*.json',
-          './apps/*/tsconfig*.json',
-          './packages/*/tsconfig*.json',
-        ],
+        project: ['./tsconfig*.json', './apps/*/tsconfig*.json', './packages/*/tsconfig*.json'],
         sourceType: 'module',
       },
       globals: {
@@ -51,6 +47,10 @@ module.exports = [
       // La regla base no entiende las sobrecargas de función de TypeScript.
       'no-redeclare': 'off',
       '@typescript-eslint/no-redeclare': 'error',
+      // Redundante en TS: `tsc` ya detecta identificadores inexistentes, y la
+      // regla base desconoce los globales de Node (`URL`, `Buffer`…) y del DOM.
+      // Es la recomendación explícita de typescript-eslint.
+      'no-undef': 'off',
     },
   },
 
@@ -104,18 +104,28 @@ module.exports = [
             // La infraestructura es la única que puede verlo todo.
             {
               from: ['infrastructure'],
+              allow: ['domain', 'application', 'infrastructure', 'shared-domain', 'shared-infra'],
+            },
+            // La infraestructura compartida implementa puertos del dominio
+            // (JwtAuthGuard usa ProfileRepository, PrismaExchangeRateAdapter
+            // implementa ExchangeRateProvider): depender de `domain` es
+            // justamente lo que hace un adaptador.
+            {
+              from: ['shared-infra'],
+              allow: ['shared-domain', 'shared-infra', 'domain', 'application'],
+            },
+            {
+              // Cablea el contenedor de DI, así que necesita los tokens de los
+              // puertos — y los puertos viven en `domain`.
+              from: ['app-root'],
               allow: [
+                'app-root',
                 'domain',
                 'application',
                 'infrastructure',
                 'shared-domain',
                 'shared-infra',
               ],
-            },
-            { from: ['shared-infra'], allow: ['shared-domain', 'shared-infra'] },
-            {
-              from: ['app-root'],
-              allow: ['app-root', 'application', 'infrastructure', 'shared-domain', 'shared-infra'],
             },
           ],
         },
@@ -131,14 +141,7 @@ module.exports = [
           rules: [
             {
               from: ['domain', 'shared-domain'],
-              disallow: [
-                '@prisma/client',
-                'prisma',
-                '@nestjs/*',
-                'zod',
-                'express',
-                '@supabase/*',
-              ],
+              disallow: ['@prisma/client', 'prisma', '@nestjs/*', 'zod', 'express', '@supabase/*'],
               message:
                 'El dominio no puede depender de ${dependency}. ' +
                 'Define un puerto en domain/ y su adaptador en infrastructure/.',
