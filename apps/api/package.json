@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --passWithNoTests",
     "test:domain": "vitest run --coverage",
-    "test:integration": "vitest run --dir test/integration --passWithNoTests",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "vitest run --dir test/e2e --passWithNoTests",
     "test:tenant": "vitest run --dir test/tenant --passWithNoTests",
     "db:migrate": "prisma migrate dev",

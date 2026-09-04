@@ -6,6 +6,7 @@ import { InMemoryBudgetSettingsRepository, InMemoryPeriodRepository } from '../.
 import { InMemoryCategoryRepository, InMemoryPaymentMethodRepository, InMemorySavingsFundRepository } from '../../../../../test/doubles/catalog.doubles';
 import { InMemoryHouseholdMemberRepository, InMemoryHouseholdRepository, InMemoryProfileRepository, InMemoryUserRepository } from '../../../../../test/doubles/iam.doubles';
 import { SequentialIdGenerator } from '../../../../../test/doubles/id-generator.double';
+import { NoopUnitOfWork } from '../../../../../test/doubles/unit-of-work.double';
 import { DEFAULT_CATEGORIES, DEFAULT_PAYMENT_METHODS } from '../../../catalog/domain/default-catalog';
 
 import { BootstrapUserUseCase, type BootstrapUserCommand } from './bootstrap-user.use-case';
@@ -61,7 +62,8 @@ describe('BootstrapUserUseCase', () => {
       categories,
       paymentMethods,
       savingsFunds,
-      new SequentialIdGenerator()
+      new SequentialIdGenerator(),
+      new NoopUnitOfWork()
     );
   });
 
@@ -111,10 +113,16 @@ describe('BootstrapUserUseCase', () => {
   });
 
   it('es idempotente: repetir la llamada no duplica nada', async () => {
-    await useCase.execute(command);
+    const first = await useCase.execute(command);
     const second = await useCase.execute(command);
+    expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
-    if (!second.ok) return;
+    if (!first.ok || !second.ok) return;
+
+    // La comprobación que de verdad importa: reutiliza el MISMO household,
+    // no solo "un household con los conteos correctos" — un household nuevo
+    // por llamada pasaría igual esas cuentas y ocultaría la duplicación.
+    expect(second.value.household.id).toBe(first.value.household.id);
 
     expect(await users.findById('user-1')).not.toBeNull();
     expect((await categories.findMany(second.value.household.id)).length).toBe(DEFAULT_CATEGORIES.length);

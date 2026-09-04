@@ -5,6 +5,7 @@ import type { IdGenerator } from '../../../../shared/domain/id-generator.port';
 import { Money } from '../../../../shared/domain/money.vo';
 import { Percentage } from '../../../../shared/domain/percentage.vo';
 import { ok, type Result } from '../../../../shared/domain/result';
+import type { UnitOfWork } from '../../../../shared/domain/unit-of-work.port';
 import { BudgetSettings } from '../../../budget/domain/budget-settings.entity';
 import type { BudgetSettingsRepository } from '../../../budget/domain/budget-settings.repository';
 import { PeriodFactory } from '../../../budget/domain/period-factory.service';
@@ -69,18 +70,25 @@ export class BootstrapUserUseCase {
     private readonly categories: CategoryRepository,
     private readonly paymentMethods: PaymentMethodRepository,
     private readonly savingsFunds: SavingsFundRepository,
-    private readonly ids: IdGenerator
+    private readonly ids: IdGenerator,
+    private readonly unitOfWork: UnitOfWork
   ) {}
 
-  async execute(command: BootstrapUserCommand): Promise<Result<BootstrappedUser, DomainError>> {
-    const user = await this.findOrCreateUser(command);
-    const household = await this.findOrCreateHousehold(command);
-    const membership = await this.findOrCreateMembership(household.id, user.id);
-    const profile = await this.findOrCreateProfile(command, user.id, household.id);
-    const { settings, periods } = await this.findOrCreateBudget(command, household.id);
-    await this.seedCatalog(household.id, command.baseCurrency);
+  /**
+   * Todo el onboarding es una sola transacción: si falla al sembrar el
+   * catálogo, no debe quedar a medias un household sin sus quincenas.
+   */
+  execute(command: BootstrapUserCommand): Promise<Result<BootstrappedUser, DomainError>> {
+    return this.unitOfWork.run(async () => {
+      const user = await this.findOrCreateUser(command);
+      const household = await this.findOrCreateHousehold(command);
+      const membership = await this.findOrCreateMembership(household.id, user.id);
+      const profile = await this.findOrCreateProfile(command, user.id, household.id);
+      const { settings, periods } = await this.findOrCreateBudget(command, household.id);
+      await this.seedCatalog(household.id, command.baseCurrency);
 
-    return ok({ user, profile, household, membership, settings, periods });
+      return ok({ user, profile, household, membership, settings, periods });
+    });
   }
 
   private async findOrCreateUser(command: BootstrapUserCommand): Promise<User> {
@@ -93,15 +101,18 @@ export class BootstrapUserUseCase {
   }
 
   private async findOrCreateHousehold(command: BootstrapUserCommand): Promise<Household> {
-    // El household nace junto con su primer OWNER: no tiene una clave natural
-    // propia más allá de "el que este usuario está creando ahora".
-    const existing = await this.households.findById(command.userId);
-    if (existing) return existing;
+    // El household no tiene clave natural propia; la idempotencia se resuelve
+    // por la RELACIÓN ya existente (¿a qué household pertenece ya este
+    // usuario?), nunca adivinando su id. Un household nuevo se crea con un id
+    // generado — jamás el del usuario: son espacios de identidad distintos, y
+    // confundirlos rompía la idempotencia (cada reintento generaba un id
+    // nuevo, así que la búsqueda por household.id === userId nunca encajaba).
+    const existingMemberships = await this.members.findByUserAcrossHouseholds(command.userId);
+    for (const membership of existingMemberships) {
+      const existing = await this.households.findById(membership.householdId);
+      if (existing) return existing;
+    }
 
-    // Se usa el id del usuario como id del household de onboarding: es 1:1 en
-    // el alta y evita una segunda vuelta a un generador solo para esto. Un
-    // household compartido posterior (invitar a alguien) sigue siendo el mismo
-    // registro; unirse a un household ajeno no pasa por este caso de uso.
     const household = new Household({
       id: this.ids.generate(),
       name: command.householdName,
